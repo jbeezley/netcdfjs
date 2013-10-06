@@ -2,33 +2,13 @@ if (typeof define !== 'function') {
     var define = require('amdefine')(module);
 }
 
-define(function () {
+define(['./common.js'], function (common) {
     'use scrict';
-    var dP = Object.defineProperty, numberSize = 4, numberType = 'int32';
-    function padLength(n) {
-        // get the number of bytes of padding needed for an object of size n
-        return (4 - (n % 4)) % 4;
-    }
 
-    function padBuffer(buffer) {
-        var i, n = padLength(buffer.tell());
-        for (i = 0; i < n; i++) {
-            buffer.write('int8',0);
-        }
-    }
-    function stringSize(s) {
-        // return the number of bytes required to store a given string
-        // format:
-        //   length + string + padding
-        // (strings are padded to 32 bit boundaries)
-        return numberSize + s.length + padLength(s.length);
-    }
-    function writeString(s, buffer) {
-        // write the string s to the buffer
-        buffer.write(numberType, s.length);
-        buffer.write('char', s);
-        padBuffer(buffer);
-    }
+    var dP = common.dP, numberSize = common.numberSize, numberType = common.numberType,
+        padLength = common.padLength, padBuffer = common.padBuffer,
+        stringSize = common.stringSize, writeString = common.writeString;
+    
     // simple ordered mapping container
     // (also protects against keys conflicting with methods)
     function OMap (valueCheck) {

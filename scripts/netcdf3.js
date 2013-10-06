@@ -31,9 +31,13 @@ if (typeof define !== 'function') {
     var define = require('amdefine')(module);
 }
 
-define(['./wrapDataView.js', './orderedmap.js'], function (wrapDataView, OMap) {
+define(['./wrapDataView.js', './orderedmap.js', './common.js'], function (wrapDataView, OMap, common) {
     'use strict';
 
+    var dP = common.dP, numberSize = common.numberSize, numberType = common.numberType,
+        padLength = common.padLength, padBuffer = common.padBuffer,
+        stringSize = common.stringSize, writeString = common.writeString;
+    
     // Constants defined by the netcdf specification:
     var ABSENT       = [0, 0],
         NC_BYTE      = 1,
@@ -50,7 +54,7 @@ define(['./wrapDataView.js', './orderedmap.js'], function (wrapDataView, OMap) {
         typekey,
         sizeMap,
         typeFill,
-        dP, formats, numberSize, cdlMap, numberType,
+        formats, cdlMap,
         typeChar;
 
     formats = { NETCDF3_CLASSIC: '\x01', NETCDF3_64BIT: '\x02' };
@@ -63,7 +67,6 @@ define(['./wrapDataView.js', './orderedmap.js'], function (wrapDataView, OMap) {
     typeMap[NC_INT]    = 'int32';
     typeMap[NC_FLOAT]  = 'float32';
     typeMap[NC_DOUBLE] = 'float64';
-    numberType = 'int32';
 
     // mapping for cdl names
     cdlMap = {
@@ -84,7 +87,6 @@ define(['./wrapDataView.js', './orderedmap.js'], function (wrapDataView, OMap) {
         float32: 4,
         float64: 8
     };
-    numberSize = sizeMap.int32;
 
     typeChar = {
         int8: 'b',
@@ -111,40 +113,6 @@ define(['./wrapDataView.js', './orderedmap.js'], function (wrapDataView, OMap) {
             invTypeMap[typeMap[typekey]] = (+typekey);
         }
     }
-
-    // aliases to reduce source size
-    dP = Object.defineProperty;
-
-
-
-    function padLength(n) {
-        // get the number of bytes of padding needed for an object of size n
-        return (4 - (n % 4)) % 4;
-    }
-
-    function padBuffer(buffer) {
-        var i, n = padLength(buffer.tell());
-        for (i = 0; i < n; i++) {
-            buffer.write('int8',0);
-        }
-    }
-
-    function stringSize(s) {
-        // return the number of bytes required to store a given string
-        // format:
-        //   length + string + padding
-        // (strings are padded to 32 bit boundaries)
-        return numberSize + s.length + padLength(s.length);
-    }
-
-    function writeString(s, buffer) {
-        // write the string s to the buffer
-        buffer.write(numberType, s.length);
-        buffer.write('char', s);
-        padBuffer(buffer);
-    }
-
-
 
     function makeTypedObject (obj, type) {
         if (!(invTypeMap.hasOwnProperty(type))) {
