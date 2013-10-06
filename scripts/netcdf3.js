@@ -31,7 +31,7 @@ if (typeof define !== 'function') {
     var define = require('amdefine')(module);
 }
 
-define(function () {
+define(['./wrapDataView.js', './orderedmap.js'], function (wrapDataView, OMap) {
     'use strict';
 
     // Constants defined by the netcdf specification:
@@ -51,7 +51,7 @@ define(function () {
         sizeMap,
         typeFill,
         dP, formats, numberSize, cdlMap, numberType,
-        TWO_32 = Math.pow(2, 32), typeChar;
+        typeChar;
 
     formats = { NETCDF3_CLASSIC: '\x01', NETCDF3_64BIT: '\x02' };
     Object.freeze(formats);
@@ -115,116 +115,7 @@ define(function () {
     // aliases to reduce source size
     dP = Object.defineProperty;
 
-    // simple dataview wrapper based in part on jdataview
-    function wrapDataView(buffer) {
-        var index = 0, d = [];
-        this.tell = function () {
-            return index;
-        };
-        this.seek = function (offset) {
-            if (offset) {
-                index = offset
-            } else {
-                index = 0;
-            }
-        };
-        this.debugString = function () {
-            return d.join(" ");
-        }
-        this._write = function (type, value) {
-            var hi, lo;
-            //console.log(type, value, index);
-            d.push(value.toString());
-            if (type === 'int8') {
-                buffer.setInt8(index, value);
-                index += 1;
-            } else if (type === 'char') {
-                buffer.setUint8(index, value.charCodeAt(0));
-                index += 1;
-            } else if (type === 'int16') {
-                buffer.setInt16(index, value);
-                index += 2;
-            } else if (type === 'int32') {
-                buffer.setInt32(index, value);
-                index += 4;
-            } else if (type === 'int64') {
-                hi = Math.floor(value / TWO_32);
-                lo = value - hi * TWO_32;
-                if (value < 0) {
-                    hi += TWO_32;
-                }
-                buffer.setInt32(index, hi);
-                index += 4;
-                buffer.setUint32(index, lo);
-                index += 4;
-            } else if (type === 'float32') {
-                buffer.setFloat32(index, value);
-                index += 4;
-            } else if (type === 'float64') {
-                buffer.setFloat64(index, value);
-                index += 8;
-            }
-        };
-        this.write = function (type, value) {
-            var i;
-            if (Array.isArray(value) || type === 'char') {
-                for (i = 0; i < value.length; i++) {
-                    this._write(type, value[i]);
-                }
-            } else {
-                this._write(type, value);
-            }
-        }
-        this._read = function (type) {
-            var value, hi;
-            if (type === 'int8') {
-                value = buffer.getInt8(index);
-                index += 1;
-            } else if (type === 'char') {
-                value = String.fromCharCode(buffer.getUint8(index));
-                index += 1;
-            } else if (type === 'int16') {
-                value = buffer.getInt16(index);
-                index += 2;
-            } else if (type === 'int32') {
-                value = buffer.getInt32(index);
-                index += 4;
-            } else if (type === 'int64') {
-                value = buffer.getInt32(index);
-                index += 4;
-                hi = 0;
-                if (value) {
-                    // warn on precision loss
-                    console.log("WARNING: converting 64 bit integer into a double.");
-                    hi = TWO_32 * value;
-                }
-                value = hi + buffer.getUint32(index);
-                index += 4;
-            } else if (type === 'float32') {
-                value = buffer.getFloat32(index);
-                index += 4;
-            } else if (type === 'float64') {
-                value = buffer.getFloat64(index);
-                index += 8;
-            }
-            return value;
-        };
-        this.read = function (type, size) {
-            var i, size, value;
-            if (size !== undefined) {
-                value = [];
-                for (i = 0; i < size; i++) {
-                    value.push(this._read(type));
-                }
-                if (type === 'char') {
-                    value = value.join("");
-                }
-            } else {
-                value = this._read(type);
-            }
-            return value;
-        }
-    }
+
 
     function padLength(n) {
         // get the number of bytes of padding needed for an object of size n
@@ -253,163 +144,7 @@ define(function () {
         padBuffer(buffer);
     }
 
-    // simple ordered mapping container
-    // (also protects against keys conflicting with methods)
-    function OMap (valueCheck) {
-        var keys = [], values = [];
-        // optional argument checks values added to the mapping, which
-        // by default returns true.
-        if (valueCheck === undefined) {
-            valueCheck = function () { return true; };
-        }
-        function copyArray(a) { return Array.prototype.slice.call(a); };
-        dP(this, "append", {
-            //__proto__: null,
-            value: function (key, value) {
-                if (typeof key !== "string") {
-                    throw new TypeError("Mapped keys must be strings.");
-                }
-                if (keys.indexOf(key) >= 0) {
-                    throw new Error ("Duplicate key.");
-                }
-                if (typeof value === "string" || typeof value === "number" || !valueCheck(value)) {
-                    throw new TypeError("Invalid value.");
-                }
-                keys.push(key);
-                values.push(value);
-                return this;
-            }
-        });
-        dP(this, "indexOf", {
-            //__proto__: null,
-            value: function (key) {
-                var index;
-                if (typeof key === "string") {
-                    index = keys.indexOf(key);
-                } else if ( typeof key === "number" ) {
-                    index = key;
-                } else {
-                    index = values.indexOf(key);
-                }
-                return index;
-            }
-        });
-        dP(this, "keyOf", {
-            //__proto__: null,
-            value: function (value) {
-                var index;
-                if (typeof value === "string") {
-                    index = keys.indexOf(value);
-                } else if ( typeof value === "number" ) {
-                    index = value;
-                } else {
-                    index = values.indexOf(value);
-                }
-                return keys[index];
-            }
-        });
-        dP(this, "remove", {
-            //__proto__: null,
-            value: function (key) {
-                var index = this.indexOf(key);
-                if (index < 0) {
-                    throw new Error("Invalid key.");
-                }
-                keys.splice(index, 1);
-                values.splice(index, 1);
-            return this;
-            }
-        });
-        dP(this, "length", {
-            //__proto__: null,
-            get: function () { return keys.length; }
-        });
-        dP(this, "get", {
-            //__proto__: null,
-            value: function (key) {
-                return values[this.indexOf(key)];
-            }
-        });
-        dP(this, "keys", {
-            //__proto__: null,
-            get: function () { return copyArray(keys); }
-        });
-        dP(this, "values", {
-            //__proto__: null,
-            get: function () { return copyArray(values); }
-        });
-        this.toLines = function (tab) {
-            var s = [], i;
-            if (tab === undefined) {
-                tab = ''
-            }
-            for (i = 0; i < this.length; i++) {
-                s.push(tab + keys[i].toString() + " = " + values[i].toString() + " ;");
-            }
-            return s;
-        };
-        this.keysToLines = function (tab) {
-            var s = [], i;
-            if (tab === undefined) {
-                tab = ''
-            }
-            for (i = 0; i < this.length; i++) {
-                s.push(tab + keys[i].toString());
-            }
-            return s;
-        };
-        this.valuesToLines = function (tab) {
-            var s = [], i;
-            if (tab === undefined) {
-                tab = ''
-            }
-            for (i = 0; i < this.length; i++) {
-                s.push(values[i].toString(tab));
-            }
-            return s;
-        }
-        this.toString = function (tab) {
-            return this.toLines(tab).join("\n");
-        };
-        this.toObject = function () {
-            var obj = {}, i;
-            for (i = 0; i < this.length; i++) {
-                obj[this.keys[i]] = this.values[i];
-            }
-            return obj;
-        }
-        this.headerSize = function (offset) {
-            // compute the size of this element of the header
-            // given an offset size (depending on the file type)
-            var n = numberSize, // absent or type
-                i;
-            n += numberSize; // length
-            for (i = 0; i < this.length; i++) {
-                n += stringSize(keys[i]);
-                n += values[i].headerSize(offset);
-            }
-            return n;
-        };
-        this.writeHeader = function (buffer, offset, offsets) {
-            var i, id = this._id;
-            if (id === undefined) {
-                throw new Error("writeHeader called in abstract class.");
-            }
-            if (offsets === undefined) {
-                offsets = [];
-            }
-            if (this.length) {
-                buffer.write(numberType, id);
-                buffer.write(numberType, this.length);
-                for (i = 0; i < this.length; i++) {
-                    writeString(this.keys[i], buffer);
-                    this.values[i].writeHeader(buffer, offset, offsets[i]);
-                }
-            } else {
-                buffer.write(numberType, ABSENT);
-            }
-        }
-    }
+
 
     function makeTypedObject (obj, type) {
         if (!(invTypeMap.hasOwnProperty(type))) {
@@ -839,6 +574,9 @@ define(function () {
             vars.writeHeader(buffer, offsetSize, offsets);
             console.log(buffer.debugString());
             return bufarg;
+        };
+        this.readHeader = function (buffer) {
+            
         };
         this.headerSize = function () {
             // format:

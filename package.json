@@ -1,0 +1,26 @@
+{
+    "name": "netcdf",
+    "version": "0.0.0",
+    "description": "A native javascript library for reading netcdf files.",
+    "keywords": ["netcdf", "binary", "data", "file", "read", "write"],
+    "homepage": "https://github.com/jbeezley/netcdfjs",
+    "author": "Jonathan Beezley <jon.beezley@gmail.com>",
+    "files": ["scripts/netcdf3.js", "scripts/wrapdataview.js", "scripts/orderedmap.js"],
+    "main": "scripts/netcdf3.js",
+    "scripts": {
+        "test": "make test"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/jbeezley/netcdfjs.git"
+    },
+    "devDependencies": {
+        "mocha": "*",
+        "chai": "*"
+    },
+    "licenses": [{
+        "type": "MIT",
+        "url": "https://raw.github.com/jbeezley/netcdfjs/master/LICENSE"
+    }],
+    "bugs": "https://github.com/jbeezley/netcdfjs/issues"
+}
