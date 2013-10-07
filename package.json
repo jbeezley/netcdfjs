@@ -17,7 +17,8 @@
     "devDependencies": {
         "mocha": "*",
         "chai": "*",
-        "jscoverage": "*"
+        "jscoverage": "*",
+        "amdefine": "*"
     },
     "licenses": [{
         "type": "MIT",
