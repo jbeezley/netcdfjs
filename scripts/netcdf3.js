@@ -31,7 +31,7 @@ if (typeof define !== 'function') {
     var define = require('amdefine')(module);
 }
 
-define(['./wrapDataView.js', './orderedmap.js', './common.js'], function (wrapDataView, OMap, common) {
+define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDataView, OMap, common) {
     'use strict';
 
     var dP = common.dP, numberSize = common.numberSize, numberType = common.numberType,
