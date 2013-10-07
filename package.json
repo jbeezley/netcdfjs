@@ -16,7 +16,8 @@
     },
     "devDependencies": {
         "mocha": "*",
-        "chai": "*"
+        "chai": "*",
+        "jscoverage": "*"
     },
     "licenses": [{
         "type": "MIT",

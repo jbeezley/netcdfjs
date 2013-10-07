@@ -2,7 +2,8 @@
 var chai = require("chai");
 var should = chai.should(),
     expect = chai.expect;
-var wrapDataView = require('../scripts/wrapdataview.js');
+var jsc = require('jscoverage')
+var wrapDataView = jsc.require(module, '../scripts/wrapdataview.js');
 
 var metaFunction = function (foo, arg1, arg2, arg3) {
     return function () {
