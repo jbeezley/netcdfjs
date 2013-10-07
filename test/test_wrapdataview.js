@@ -2,8 +2,9 @@
 var chai = require("chai");
 var should = chai.should(),
     expect = chai.expect;
-var jsc = require('jscoverage')
-var wrapDataView = jsc.require(module, '../scripts/wrapdataview.js');
+    
+var libpath = process.env['NETCDFJS_COV'] ? '../scripts-cov' : '../scripts';
+var wrapDataView = require(libpath + '/wrapdataview.js');
 
 var metaFunction = function (foo, arg1, arg2, arg3) {
     return function () {

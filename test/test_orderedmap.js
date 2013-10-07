@@ -3,9 +3,8 @@ var chai = require('chai');
 var expect = chai.expect;
 chai.should();
 
-var jsc = require('jscoverage')
-
-var OMap = jsc.require(module, '../scripts/orderedmap.js');
+var libpath = process.env['NETCDFJS_COV'] ? '../scripts-cov' : '../scripts';
+var OMap = require(libpath + '/orderedmap.js');
 
 function meta(foo, arg1, arg2, arg3, arg4) {
     return function () {
