@@ -577,5 +577,5 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         };
     }
 
-    return { NcFile: NcFile, types: Object.keys(invTypeMap), fileFormats: formats };
+    return { NcFile: NcFile, types: Object.keys(invTypeMap) };
 });
