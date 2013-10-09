@@ -4,10 +4,11 @@ chai.should();
 
 var libpath = process.env['NETCDFJS_COV'] ? '../scripts-cov' : '../scripts';
 var netcdf3 = require(libpath + '/netcdf3.js');
+var wrapDataView = require(libpath + '/wrapdataview.js');
 
 var NcFile = netcdf3.NcFile;
 
-var defString = 'netcdf <file> {\ndimensions:\n\tdim1 = 10 ;\n\tdim2 = 11 ;\n\tdim3 = UNLIMITED ; // (0 currently)\n\tdim4 = 2 ;\n\tdim5 = 1 ;\n\tdim6 = 2 ;\n\tdim7 = 7 ;\nvariables:\n\tchar var1(dim1, dim2) ;\n\tbyte var2(dim3, dim1, dim7) ;\n\tshort var3(dim5, dim7, dim1, dim4) ;\n\tint var4() ;\n\tfloat var5(dim3, dim1, dim2, dim4, dim5, dim6, dim7) ;\n\t\tvar5:_FillValue = 0.1f ;\n\tdouble var6(dim3) ;\n\n// global attributes:\n\t\t:attr1 = \"my value\" ;\n}';
+var defString = "netcdf <file> {\ndimensions:\n\tdim1 = 10 ;\n\tdim2 = 11 ;\n\tdim3 = UNLIMITED ; // (0 currently)\n\tdim4 = 2 ;\n\tdim5 = 1 ;\n\tdim6 = 2 ;\n\tdim7 = 7 ;\nvariables:\n\tchar var1(dim1, dim2) ;\n\t\tvar1:a1 = 1.1f, -2.1f, 5f ;\n\tbyte var2(dim3, dim1, dim7) ;\n\t\tvar2:att = \"i am an attribute\" ;\n\tshort var3(dim5, dim7, dim1, dim4) ;\n\t\tvar3:a1 = 2.1667 ;\n\t\tvar3:a2 = 0b, 1b, 2b, 3b, 4b, 5b, 6b, 7b ;\n\t\tvar3:a3 = \"abc\" ;\n\tint var4() ;\n\tfloat var5(dim3, dim1, dim2, dim4, dim5, dim6, dim7) ;\n\t\tvar5:_FillValue = 0.1f ;\n\t\tvar5:c1 = \"I am a character attribute.\" ;\n\t\tvar5:i8 = 0b, 8b ;\n\t\tvar5:i16 = 256s ;\n\t\tvar5:i32 = 3735928559 ;\n\t\tvar5:f32 = 0.1f, -32f, -100.12f ;\n\t\tvar5:f64 = -99.1 ;\n\tdouble var6(dim3) ;\n\t\tvar6:attribute = \"hello\" ;\n\n// global attributes:\n\t\t:attr1 = \"my value\" ;\n}";
 var defDims = {
     dim1: 10,
     dim2: 11,
@@ -120,7 +121,7 @@ var defAttrs = {
 };
 
 function makeFile(kind, dims, vars, attrs) {
-    var a, type, d, fill, v, attr, val;
+    var a, type, d, fill, v, attr, val, b;
     var attrName, dimName, varName;
     if (kind === undefined) {
         kind = 'NETCDF3_CLASSIC';
@@ -143,13 +144,13 @@ function makeFile(kind, dims, vars, attrs) {
         type = v.type;
         fill = v.fill;
         d = v.dims;
-        a = v.attrs;
+        a = v.attr;
         v = f.createVariable(varName, type, d, fill);
         for (attrName in a) {
             attr = a[attrName];
             type = attr.type;
             val = attr.value;
-            v.createAttribute(attrName, val, type);
+            b =v.createAttribute(attrName, val, type);
         }
     }
     for (attrName in attrs) {
@@ -162,6 +163,59 @@ function makeFile(kind, dims, vars, attrs) {
 }
 
 describe('netcdf3', function () {
+    describe('Variable', function () {
+        it('test components of the Variable object', function (done) {
+            var files = [ new NcFile('NETCDF3_CLASSIC'),
+                          new NcFile('NETCDF3_64BIT') ];
+            var i, f, v, dims, sizes;
+            for (i = 0; i < files.length; i++) {
+                dims = ['x', 'y'];
+                sizes = [11, 13];
+                type = 'float64';
+                f = files[i];
+
+                f.createDimension(dims[0], sizes[0]);
+                f.createDimension(dims[1], sizes[1]);
+                v = f.createVariable('var', type, dims);
+                v.should.have.property('dimensions').eql(dims);
+                v.should.have.property('attributes').eql({});
+                v.should.have.property('shape').eql(sizes);
+                v.should.have.property('size').equal(sizes.reduce(function (v,w) {return v*w;}));
+                v.should.have.property('isRecordVariable').equal(false);
+                v.should.have.property('fill_value');
+                v.should.have.property('recsize').equal(8 * sizes.reduce(function (v,w) {return v*w;}))
+                v.toString().should.equal('double (x, y) ;');
+                v.toString('var').should.equal('double var(x, y) ;');
+                v.toString('var', 'xxx').should.equal('xxxdouble var(x, y) ;');
+                v.toString(undefined, 'xxx').should.equal('xxxdouble (x, y) ;');
+                v.should.have.property('createAttribute');
+                v.should.have.property('headerSize');
+                v.should.have.property('writeHeader');
+                
+                type = 'int32'
+                dims = ['t'].concat(dims);
+                sizes = [0].concat(sizes);
+                f.createDimension('t');
+                v = f.createVariable('var1', type, dims, 0);
+                v.createAttribute('attr', 1.0, 'float32');
+                v.should.have.property('dimensions').eql(dims);
+                v.should.have.property('attributes').with.property('attr');
+                v.should.have.property('shape').eql(sizes);
+                v.should.have.property('size').equal(sizes.reduce(function (v,w) {return v*w;}));
+                v.should.have.property('isRecordVariable').equal(true);
+                v.should.have.property('fill_value');
+                sizes[0] = 1;
+                v.should.have.property('recsize').equal(4 * sizes.reduce(function (v,w) {return v*w;}));
+                v.toString().should.equal('int (t, x, y) ;\n\t:_FillValue = 0 ;\n\t:attr = 1f ;');
+                v.toString('var').should.equal('int var(t, x, y) ;\n\tvar:_FillValue = 0 ;\n\tvar:attr = 1f ;');
+                v.toString('var', 'x').should.equal('xint var(t, x, y) ;\nxxvar:_FillValue = 0 ;\nxxvar:attr = 1f ;');
+                v.toString(undefined, 'x').should.equal('xint (t, x, y) ;\nxx:_FillValue = 0 ;\nxx:attr = 1f ;');
+                v.should.have.property('headerSize');
+                v.should.have.property('writeHeader');
+            }
+            done();
+        });
+    })
     describe('NcFile', function () {
         it('test create a 32-bit file object', function (done) {
             var f = makeFile('NETCDF3_CLASSIC');
@@ -197,11 +251,11 @@ describe('netcdf3', function () {
             done();
         });
         it('test get header size of the example 32-bit file', function (done) {
-            makeFile('NETCDF3_CLASSIC').headerSize().should.equal(432);
+            makeFile('NETCDF3_CLASSIC').headerSize().should.equal(752);
             done();
         });
         it('test get header size of the example 64-bit file', function (done) {
-            makeFile('NETCDF3_64BIT').headerSize().should.equal(456)
+            makeFile('NETCDF3_64BIT').headerSize().should.equal(776)
             done();
         });
         it('test duplicate dimension error', function (done) {
@@ -248,6 +302,39 @@ describe('netcdf3', function () {
             meta(f.createVariable, 'avar', 'char', []).should.throw(Error, undefined, "duplicate variable");
             f.createVariable('anothervar', 'float64', []);
             meta(f.createVariable, 'avar', 'int32', []).should.throw(Error, undefined, "duplicate variable");
+            done();
+        });
+        it('test invalid file format', function (done) {
+            meta(makeFile, 'xxx').should.throw(Error, "Invalid file format.");
+            done();
+        });
+        it('test write header call', function (done) {
+            var f = makeFile();
+            var buffer = f.writeHeader();
+            f = makeFile('NETCDF3_64BIT');
+            buffer = f.writeHeader();
+            f = new NcFile();
+            buffer = f.writeHeader();
+            f = new NcFile('NETCDF3_64BIT');
+            buffer = f.writeHeader();
+            done();
+        })
+        it('test invalid variable name', function (done) {
+            var f = new NcFile();
+            var err = 'Invalid variable name.'
+            meta(f.createVariable, '', 'int8', []).should.throw(Error, err);
+            meta(f.createVariable, undefined, 'float32', []).should.throw(Error, err);
+            meta(f.createVariable, {}, 'float64', []).should.throw(Error, err);
+            meta(f.createVariable, 0, 'int32', []).should.throw(Error, err);
+            done();
+        });
+        it('test invalid dimension name', function (done) {
+            var f = new NcFile();
+            var err = 'Invalid dimension name.'
+            meta(f.createDimension, '', 1).should.throw(Error, err);
+            meta(f.createDimension, undefined, 1).should.throw(Error, err);
+            meta(f.createDimension, {}, 1).should.throw(Error, err);
+            meta(f.createDimension, 0, 1).should.throw(Error, err);
             done();
         });
     })

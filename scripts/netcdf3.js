@@ -307,8 +307,9 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         dP(this, "shape", { get: function () {
                 var i, s = [];
                 for (i = 0; i < dimensions.length; i++) {
-                    s.push(dimensions.currentSize);
+                    s.push(dimensions.values[i].currentSize);
                 }
+                return s;
             }
         })
         dP(this, "size", { get: function () {
@@ -490,6 +491,9 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         this.createVariable = function (name, type, dimensions, fill_value) {
             var i, v, dimName, dim,
                 vdims = DimensionMap();
+            if (typeof name !== 'string' || !name.length ) {
+                throw new Error("Invalid variable name.")
+            }
             if (vars.get(name) !== undefined) {
                 throw new Error(["Variable name already exists: ", name].join(""));
             }
@@ -510,6 +514,9 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         };
         this.createDimension = function (name, size) {
             var dim = new Dimension(size, dims.length, size === undefined), i;
+            if (typeof name !== 'string' || !name.length ) {
+                throw new Error("Invalid dimension name.")
+            }
             if (dims.get(name) !== undefined) {
                 throw new Error(["Dimension name already exists: ", name].join(""));
             }
@@ -530,7 +537,7 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         };
         this.writeHeader = function (buffer) {
             var offsetSize, n = this.headerSize(), bufarg, offsets = this.offsets;
-            console.log(offsets.join(" "));
+            //console.log(offsets.join(" "));
             if (buffer === undefined) {
                 buffer = new DataView(new ArrayBuffer(n));
             }
@@ -547,7 +554,7 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
             dims.writeHeader(buffer);
             attrs.writeHeader(buffer);
             vars.writeHeader(buffer, offsetSize, offsets);
-            console.log(buffer.debugString());
+            //console.log(buffer.debugString());
             return bufarg;
         };
         this.readHeader = function (buffer) {
