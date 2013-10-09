@@ -164,7 +164,17 @@ define(['./common.js'], function (common) {
             } else {
                 buffer.write(numberType, [0, 0]);
             }
+        };
+    }
+    OMap.readHeader = function (buffer, valueFunction) {
+        var i, id, n, omap, keys = [], values = [];
+        id = buffer.read(numberType);
+        n = buffer.read(numberType);
+        for (i = 0; i < n; i++) {
+            keys.push(readString(buffer));
+            values.push(valueFunction(buffer, i));
         }
+        return { keys: keys, values: values};
     }
     return OMap;
 })

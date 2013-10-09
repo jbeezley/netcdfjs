@@ -15,12 +15,17 @@ define(function () {
             buffer.write('int8',0);
         }
     }
+    function padSkip(buffer) {
+        var n = padLength(buffer.tell());
+        buffer.seek(buffer.tell() + n);
+    }
     return {
         dP: Object.defineProperty,
         numberSize: numberSize,
         numberType: numberType,
         padLength: padLength,
         padBuffer: padBuffer,
+        padSkip: padSkip,
         stringSize: function(s) {
             // return the number of bytes required to store a given string
             // format:
@@ -33,6 +38,12 @@ define(function () {
             buffer.write(numberType, s.length);
             buffer.write('char', s);
             padBuffer(buffer);
+        },
+        readString: function (buffer) {
+            var s, n = buffer.read(numberType);
+            s = buffer.read('char', n);
+            padSkip(buffer);
+            return s;
         }
     }
 })

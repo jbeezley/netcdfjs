@@ -159,6 +159,11 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
             }
         };
     }
+    
+    function readDimension(buffer, id) {
+        var size = buffer.read(numberType);
+        return new Dimension(size, id, size === 0);
+    }
 
     function Attribute (type) {
         var me = Object.create(Array.prototype);
@@ -194,6 +199,19 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
             padBuffer(buffer);
         };
         return me;
+    }
+    
+    function readAttribute(buffer) {
+        var type, n, val, attr, i;
+        type = typeMap[buffer.read(numberType)];
+        n = buffer.read(numberType);
+        val = buffer.read(type, n);
+        attr = new Attribute(type);
+        for (i = 0; i < n; i++) {
+            attr[i] = val[i];
+        }
+        padSkip(buffer);
+        return attr;
     }
     
     function createAttribute(value, type) {
@@ -298,6 +316,14 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         }
         return amap;
     }
+    AttributeMap.readHeader = function (buffer) {
+        var i, amap, obj = OMap.readHeader(readAttribute);
+        amap = new AttributeMap();
+        for (i = 0; i < obj.keys.length; i++) {
+            amap.append(obj.keys[i], obj.values[i]);
+        }
+        return amap;
+    };
 
     function Variable (type, dimensions, fill_value) {
         var attr, attrs = AttributeMap();
@@ -387,9 +413,7 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
                 o = 'int32';
             } else if (offsetSize === 8) {
                 o = 'int64';
-            } else {
-                throw new Error("Invalid offset size.");
-            }
+            } 
             buffer.write(numberType, dimensions.length);
 
             for (i = 0; i < dimensions.length; i++) {
@@ -405,6 +429,32 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
             buffer.write(o, offset);  
             //console.log("final: " + buffer.tell());
         };
+    }
+    
+    function readVariable(buffer, offsetSize) {
+        var o, nDims, dimids, type, recsize, offset, attrs, v, fill;
+        if (offsetSize === 4) {
+            o = 'int32';
+        } else if (offsetSize === 8) {
+            o = 'int64';
+        }
+        nDims = buffer.read(numberType);
+        dimids = buffer.read(numberType, nDims);
+        attrs = readAttributeMap(); //TODO!!!
+        type = typeMap(buffer.read(numberType));
+        recsize = buffer.read(numberType);
+        offset = buffer.read(o);
+        
+        fill = undefined;
+        if (attrs.indexOf('_FillValue') >= 0) {
+            fill = attrs.get('_FillValue');
+            attrs.remove('_FillValue');
+        }
+        v = new Variable(type, dimids, fill);
+        for (o = 0; o < attrs.length; o++) {
+            v.createAttribute(attrs.keys[i], attrs.values[i], attrs.values[i].type);
+        }
+        return v;
     }
 
     function checkVariable(value) {
@@ -426,6 +476,16 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         };
         return vmap;
     }
+    VariableMap.readHeader = function (buffer, offset) {
+        var i, vmap, obj, read;
+        function read(b) { return readVariable(b, offset); }
+        obj = OMap.readHeader(buffer, read);
+        vmap = new VariableMap();
+        for (i = 0; i < obj.keys.length; i++) {
+            vmap.append(obj.keys[i], obj.values[i]);
+        }
+        return vmap;
+    };
 
     function DimensionMap() {
         var dmap = new OMap(checkDimension);
@@ -441,7 +501,15 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         }
         return dmap;
     }
-
+    DimensionMap.readHeader = function (buffer) {
+        var i, dmap, obj = OMap.readHeader(buffer, readDimension);
+        dmap = new DimensionMap();
+        for (i = 0; i < obj.keys.length; i++) {
+            dmap.append(obj.keys[i], obj.values[i]);
+        }
+        return dmap;
+    }
+    
     function NcFile (format) {
         var attrs = AttributeMap(),
             vars = VariableMap(),
