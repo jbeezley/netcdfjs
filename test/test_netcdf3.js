@@ -18,6 +18,12 @@ var defDims = {
     dim7: 7
 };
 
+function meta(foo, arg1, arg2, arg3, arg4) {
+    return function () {
+        return foo(arg1, arg2, arg3, arg4);
+    }
+}
+
 var defVars = {
     var1: {
         type: 'char',
@@ -196,6 +202,52 @@ describe('netcdf3', function () {
         });
         it('test get header size of the example 64-bit file', function (done) {
             makeFile('NETCDF3_64BIT').headerSize().should.equal(456)
+            done();
+        });
+        it('test duplicate dimension error', function (done) {
+            var f = new NcFile();
+            f.createDimension('x', 1);
+            meta(f.createDimension, 'x', 1).should.throw(Error, undefined, "duplicate dimension");
+            f.createDimension('y');
+            meta(f.createDimension, 'x').should.throw(Error, undefined, "duplicate dimension");
+            done();
+        });
+        it('test multiple unlimited dimensions error', function (done) {
+            var f = new NcFile();
+            f.createDimension('x', 1);
+            f.createDimension('unlim');
+            f.createDimension('y', 2);
+            meta(f.createDimension, 'n').should.throw(Error, undefined, "multiple unlimited dimensions");
+            f.createDimension('z', 4);
+            meta(f.createDimension, 'm').should.throw(Error, undefined, "multiple unlimited dimensions");
+            done();
+        });
+        it('test invalid record variables', function (done) {
+            var f = new NcFile();
+            f.createDimension('Time');
+            f.createDimension('x', 10);
+            f.createDimension('y', 11);
+            f.createDimension('z', 12);
+            f.createDimension('w', 13);
+            meta(f.createVariable, 'var', 'float32', ['x', 'Time']).should.throw(Error, undefined, "invalid record variable");
+            meta(f.createVariable, 'var', 'float64', ['x', 'y', 'Time']).should.throw(Error);
+            meta(f.createVariable, 'var', 'int8', ['w', 'z', 'Time', 'y'], 1).should.throw(Error);
+            done();
+        });
+        it('test creating variable with an invalid dimension', function (done) {
+            var f = makeFile();
+            meta(f.createVariable, 'newvar1', 'float32', ['dim1', 'dim2', 'notadim']).should.throw(Error);
+            meta(f.createVariable, 'newvar2', 'float32', ['notadim']).should.throw(Error);
+            meta(f.createVariable, 'newvar3', 'int8', ['notadim', 'dim4', 'dim5']).should.throw(Error);
+            meta(f.createVariable, 'newvar4', 'char', ['dim4', 'notadim', 'dim5', 'alsonotadim']).should.throw(Error);
+            done();
+        });
+        it('test duplicate variable error', function (done) {
+            var f = new NcFile();
+            f.createVariable('avar', 'char', []);
+            meta(f.createVariable, 'avar', 'char', []).should.throw(Error, undefined, "duplicate variable");
+            f.createVariable('anothervar', 'float64', []);
+            meta(f.createVariable, 'avar', 'int32', []).should.throw(Error, undefined, "duplicate variable");
             done();
         });
     })

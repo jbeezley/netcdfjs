@@ -499,7 +499,7 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
                 if (dim === undefined) {
                     throw new Error(["Undefined dimension: ", dimName].join(""));
                 }
-                if (i !== 0 && dim.size === undefined) {
+                if (i !== 0 && dim.unlimited) {
                     throw new Error("Only the first dimension can be unlimited.")
                 }
                 vdims.append(dimName, dim);
@@ -509,9 +509,16 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
             return v;
         };
         this.createDimension = function (name, size) {
-            var dim = new Dimension(size, dims.length, size === undefined);
+            var dim = new Dimension(size, dims.length, size === undefined), i;
             if (dims.get(name) !== undefined) {
                 throw new Error(["Dimension name already exists: ", name].join(""));
+            }
+            if (dim.unlimited) {
+                for (i = 0; i < dims.length; i++) {
+                    if (dims.get(i).unlimited) {
+                        throw new Error("Only one unlimited dimension is allowed.")
+                    }
+                }
             }
             dims.append(name, dim);
             return dim;
