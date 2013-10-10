@@ -104,6 +104,7 @@ describe('main', function () {
             testTypeValue(type, -(0xFFFFFFFF >>> 1) )
             testTypeValue(type, [1,-10001,2164]);
             testTypeValue(type, [-9900001]);
+            testTypeValue(type, 0x7EADBEEF);
             testTypeValue(type, []);
             metaTestTypeValue(type, (0xFFFFFFFF >>> 1) + 1).should.throw(Error, undefined, "expected + overflow");
             metaTestTypeValue(type, -(0xFFFFFFFF >>> 1) - 2).should.throw(Error, undefined, "expected - overflow");

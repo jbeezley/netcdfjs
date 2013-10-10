@@ -50,7 +50,7 @@ define( function () {
                 buffer.setUint32(index, lo);
                 index += 4;
             } else if (type === 'float32') {
-                buffer.setFloat32(index, value);
+                buffer.setFloat32(index, Number(value).toPrecision(7));
                 index += 4;
             } else if (type === 'float64') {
                 buffer.setFloat64(index, value);
@@ -97,7 +97,7 @@ define( function () {
                 value = hi + buffer.getUint32(index);
                 index += 4;
             } else if (type === 'float32') {
-                value = buffer.getFloat32(index);
+                value = Number(buffer.getFloat32(index).toPrecision(7));
                 index += 4;
             } else if (type === 'float64') {
                 value = buffer.getFloat64(index);

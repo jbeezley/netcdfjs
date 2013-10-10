@@ -8,7 +8,7 @@ var wrapDataView = require(libpath + '/wrapdataview.js');
 
 var NcFile = netcdf3.NcFile;
 
-var defString = "netcdf <file> {\ndimensions:\n\tdim1 = 10 ;\n\tdim2 = 11 ;\n\tdim3 = UNLIMITED ; // (0 currently)\n\tdim4 = 2 ;\n\tdim5 = 1 ;\n\tdim6 = 2 ;\n\tdim7 = 7 ;\nvariables:\n\tchar var1(dim1, dim2) ;\n\t\tvar1:a1 = 1.1f, -2.1f, 5f ;\n\tbyte var2(dim3, dim1, dim7) ;\n\t\tvar2:att = \"i am an attribute\" ;\n\tshort var3(dim5, dim7, dim1, dim4) ;\n\t\tvar3:a1 = 2.1667 ;\n\t\tvar3:a2 = 0b, 1b, 2b, 3b, 4b, 5b, 6b, 7b ;\n\t\tvar3:a3 = \"abc\" ;\n\tint var4() ;\n\tfloat var5(dim3, dim1, dim2, dim4, dim5, dim6, dim7) ;\n\t\tvar5:_FillValue = 0.1f ;\n\t\tvar5:c1 = \"I am a character attribute.\" ;\n\t\tvar5:i8 = 0b, 8b ;\n\t\tvar5:i16 = 256s ;\n\t\tvar5:i32 = 3735928559 ;\n\t\tvar5:f32 = 0.1f, -32f, -100.12f ;\n\t\tvar5:f64 = -99.1 ;\n\tdouble var6(dim3) ;\n\t\tvar6:attribute = \"hello\" ;\n\n// global attributes:\n\t\t:attr1 = \"my value\" ;\n}";
+var defString = "netcdf <file> {\ndimensions:\n\tdim1 = 10 ;\n\tdim2 = 11 ;\n\tdim3 = UNLIMITED ; // (0 currently)\n\tdim4 = 2 ;\n\tdim5 = 1 ;\n\tdim6 = 2 ;\n\tdim7 = 7 ;\nvariables:\n\tchar var1(dim1, dim2) ;\n\t\tvar1:a1 = 1.1f, -2.1f, 5f ;\n\tbyte var2(dim3, dim1, dim7) ;\n\t\tvar2:att = \"i am an attribute\" ;\n\tshort var3(dim5, dim7, dim1, dim4) ;\n\t\tvar3:a1 = 2.1667 ;\n\t\tvar3:a2 = 0b, 1b, 2b, 3b, 4b, 5b, 6b, 7b ;\n\t\tvar3:a3 = \"abc\" ;\n\tint var4() ;\n\tfloat var5(dim3, dim1, dim2, dim4, dim5, dim6, dim7) ;\n\t\tvar5:_FillValue = 0.1f ;\n\t\tvar5:c1 = \"I am a character attribute.\" ;\n\t\tvar5:i8 = 0b, 8b ;\n\t\tvar5:i16 = 256s ;\n\t\tvar5:i32 = 246267631 ;\n\t\tvar5:f32 = 0.1f, -32f, -100.12f ;\n\t\tvar5:f64 = -99.1 ;\n\tdouble var6(dim3) ;\n\t\tvar6:attribute = \"hello\" ;\n\n// global attributes:\n\t\t:attr1 = \"my value\" ;\n}";
 var defDims = {
     dim1: 10,
     dim2: 11,
@@ -88,7 +88,7 @@ var defVars = {
             },
             i32: {
                 type: 'int32',
-                value: 0xDEADBEEF
+                value: 0x0EADBEEF
             },
             f32: {
                 type: 'float32',
@@ -348,7 +348,7 @@ describe('netcdf3 read/write', function () {
         fread.toString().should.equal(fwrite.toString());
         done();
     });
-    it.skip('test read/write of the example file', function (done) {
+    it('test read/write of the example file', function (done) {
         var fwrite = makeFile(), fread, buffer;
         buffer = fwrite.writeHeader();
         fread = NcFile.readHeader(buffer);

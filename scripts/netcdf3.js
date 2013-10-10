@@ -447,7 +447,7 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         
         fill = undefined;
         if (attrs.indexOf('_FillValue') >= 0) {
-            fill = attrs.get('_FillValue');
+            fill = attrs.get('_FillValue')[0];
             attrs.remove('_FillValue');
         }
         for (i = 0; i < nDims; i++) {
