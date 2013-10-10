@@ -7,7 +7,7 @@ define(['./common.js'], function (common) {
 
     var dP = common.dP, numberSize = common.numberSize, numberType = common.numberType,
         padLength = common.padLength, padBuffer = common.padBuffer,
-        stringSize = common.stringSize, writeString = common.writeString;
+        stringSize = common.stringSize, writeString = common.writeString, readString = common.readString;
     
     // simple ordered mapping container
     // (also protects against keys conflicting with methods)

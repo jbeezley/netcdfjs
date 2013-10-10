@@ -36,7 +36,8 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
 
     var dP = common.dP, numberSize = common.numberSize, numberType = common.numberType,
         padLength = common.padLength, padBuffer = common.padBuffer,
-        stringSize = common.stringSize, writeString = common.writeString;
+        stringSize = common.stringSize, writeString = common.writeString,
+        padSkip = common.padSkip;
     
     // Constants defined by the netcdf specification:
     var ABSENT       = [0, 0],
@@ -159,9 +160,12 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
             }
         };
     }
-    Dimension.readHeader = function (buffer, id) {
+    Dimension.readHeader = function (buffer, id, recsize) {
         var size = buffer.read(numberType), dim;
         dim = new Dimension(size, id, size === 0);
+        if (dim.unlimited) {
+            dim.currentSize = recsize;
+        }
         Object.freeze(dim);
         return dim;
     }
@@ -432,27 +436,25 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
             //console.log("final: " + buffer.tell());
         };
     }
-    Variable.readHeader = function (buffer, offsetSize) {
-        var o, nDims, dimids, type, recsize, offset, attrs, v, fill;
-        if (offsetSize === 4) {
-            o = 'int32';
-        } else if (offsetSize === 8) {
-            o = 'int64';
-        }
+    Variable.readHeader = function (buffer, offsetType, dimensions) {
+        var i, nDims, dimids, type, recsize, offset, attrs, v, fill, dims = new DimensionMap();
         nDims = buffer.read(numberType);
         dimids = buffer.read(numberType, nDims);
-        attrs = readAttributeMap();
-        type = typeMap(buffer.read(numberType));
+        attrs = AttributeMap.readHeader(buffer);
+        type = typeMap[buffer.read(numberType)];
         recsize = buffer.read(numberType);
-        offset = buffer.read(o);
+        offset = buffer.read(offsetType);
         
         fill = undefined;
         if (attrs.indexOf('_FillValue') >= 0) {
             fill = attrs.get('_FillValue');
             attrs.remove('_FillValue');
         }
-        v = new Variable(type, dimids, fill);
-        for (o = 0; o < attrs.length; o++) {
+        for (i = 0; i < nDims; i++) {
+            dims.append(dimensions.keys[dimids[i]], dimensions.values[dimids[i]]);
+        }
+        v = new Variable(type, dims, fill);
+        for (i = 0; i < attrs.length; i++) {
             v.createAttribute(attrs.keys[i], attrs.values[i], attrs.values[i].type);
         }
         dP(v, 'offset' , { value: offset });
@@ -479,9 +481,9 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         };
         return vmap;
     }
-    VariableMap.readHeader = function (buffer, offset) {
+    VariableMap.readHeader = function (buffer, offset, dimensions) {
         var i, vmap, obj, read;
-        function read(b) { return Variable.readHeader(b, offset); }
+        function read(b) { return Variable.readHeader(b, offset, dimensions); }
         obj = OMap.readHeader(buffer, read);
         vmap = new VariableMap();
         for (i = 0; i < obj.keys.length; i++) {
@@ -506,12 +508,11 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         return dmap;
     }
     DimensionMap.readHeader = function (buffer, numrecs) {
-        var i, dmap, obj = OMap.readHeader(buffer, Dimension.readHeader);
+        var i, dmap, obj;
+        function read(b, id) { return Dimension.readHeader(b, id, numrecs); }
+        obj = OMap.readHeader(buffer, read);
         dmap = new DimensionMap();
         for (i = 0; i < obj.keys.length; i++) {
-            if (obj.values[i].unlimited) {
-                obj.values[i].currentSize = numrecs;
-            }
             dmap.append(obj.keys[i], obj.values[i]);
         }
         Object.freeze(dmap);
@@ -700,7 +701,7 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         numrecs = buffer.read(numberType);
         dims = DimensionMap.readHeader(buffer, numrecs);
         attrs = AttributeMap.readHeader(buffer);
-        vars = VariableMap.readHeader(buffer, offsetType);
+        vars = VariableMap.readHeader(buffer, offsetType, dims);
         file = new NcFile('FROM_READHEADER', fmt, dims, attrs, vars);
         return file;
     };

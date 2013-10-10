@@ -347,5 +347,12 @@ describe('netcdf3 read/write', function () {
         fread = NcFile.readHeader(buffer);
         fread.toString().should.equal(fwrite.toString());
         done();
+    });
+    it.skip('test read/write of the example file', function (done) {
+        var fwrite = makeFile(), fread, buffer;
+        buffer = fwrite.writeHeader();
+        fread = NcFile.readHeader(buffer);
+        fread.toString().should.equal(fwrite.toString());
+        done();
     })
 })
