@@ -339,3 +339,13 @@ describe('netcdf3', function () {
         });
     })
 })
+
+describe('netcdf3 read/write', function () {
+    it('test read/write of an empty file', function (done) {
+        var fwrite = new NcFile(), fread, buffer;
+        buffer = fwrite.writeHeader();
+        fread = NcFile.readHeader(buffer);
+        fread.toString().should.equal(fwrite.toString());
+        done();
+    })
+})

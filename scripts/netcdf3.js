@@ -318,7 +318,7 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         return amap;
     }
     AttributeMap.readHeader = function (buffer) {
-        var i, amap, obj = OMap.readHeader(Attribute.readHeader);
+        var i, amap, obj = OMap.readHeader(buffer, Attribute.readHeader);
         amap = new AttributeMap();
         for (i = 0; i < obj.keys.length; i++) {
             amap.append(obj.keys[i], obj.values[i]);
@@ -518,21 +518,19 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         return dmap;
     }
     
-    function NcFile (format, readwrite, argdims, argattrs, argvars) {
+    function NcFile (format, fmt, argdims, argattrs, argvars) {
         var attrs = AttributeMap(),
             vars = VariableMap(),
-            dims = DimensionMap();
-        if (readwrite === undefined) {
+            dims = DimensionMap(),
             readwrite = 'w';
-        } else if (readwrite !== 'r' && readwrite !== 'w') {
-            throw new Error('Invalid read/write flag.')
-        }
         if (format === undefined) {
             format = 'NETCDF3_CLASSIC';
         } else if (format === 'FROM_READHEADER') {
+            format = fmt;
             dims = argdims;
             attrs = argattrs;
             vars = argvars;
+            readwrite = 'r';
         }
         format = formats[format];
         if ( format === undefined ) {
@@ -684,6 +682,7 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
     }
     NcFile.readHeader = function (buffer) {
         var formatStr, fmt, offsetType, numrecs, dims, attrs, vars, file;
+        buffer = new wrapDataView(buffer);
         formatStr = buffer.read("char", 4);
         if (formatStr.slice(0,3) !== 'CDF' ) {
             throw new Error('Invalid netCDF file.');
@@ -700,9 +699,10 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         }
         numrecs = buffer.read(numberType);
         dims = DimensionMap.readHeader(buffer, numrecs);
-        attrs = AttributeMap.readBuffer(buffer);
-        vars = VariableMap.readBuffer(buffer, offsetType);
-        file = new NcFile(fmt, 'FROM_READHEADER', dims, attrs, vars);
+        attrs = AttributeMap.readHeader(buffer);
+        vars = VariableMap.readHeader(buffer, offsetType);
+        file = new NcFile('FROM_READHEADER', fmt, dims, attrs, vars);
+        return file;
     };
     return { NcFile: NcFile, types: Object.keys(invTypeMap) };
 });
