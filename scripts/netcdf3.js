@@ -159,8 +159,7 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
             }
         };
     }
-    
-    function readDimension(buffer, id) {
+    Dimension.readHeader = function (buffer, id) {
         var size = buffer.read(numberType);
         return new Dimension(size, id, size === 0);
     }
@@ -200,8 +199,7 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         };
         return me;
     }
-    
-    function readAttribute(buffer) {
+    Attribute.readHeader = function (buffer) {
         var type, n, val, attr, i;
         type = typeMap[buffer.read(numberType)];
         n = buffer.read(numberType);
@@ -317,7 +315,7 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         return amap;
     }
     AttributeMap.readHeader = function (buffer) {
-        var i, amap, obj = OMap.readHeader(readAttribute);
+        var i, amap, obj = OMap.readHeader(Attribute.readHeader);
         amap = new AttributeMap();
         for (i = 0; i < obj.keys.length; i++) {
             amap.append(obj.keys[i], obj.values[i]);
@@ -430,8 +428,7 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
             //console.log("final: " + buffer.tell());
         };
     }
-    
-    function readVariable(buffer, offsetSize) {
+    Variable.readHeader = function (buffer, offsetSize) {
         var o, nDims, dimids, type, recsize, offset, attrs, v, fill;
         if (offsetSize === 4) {
             o = 'int32';
@@ -478,7 +475,7 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
     }
     VariableMap.readHeader = function (buffer, offset) {
         var i, vmap, obj, read;
-        function read(b) { return readVariable(b, offset); }
+        function read(b) { return Variable.readHeader(b, offset); }
         obj = OMap.readHeader(buffer, read);
         vmap = new VariableMap();
         for (i = 0; i < obj.keys.length; i++) {
@@ -502,7 +499,7 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         return dmap;
     }
     DimensionMap.readHeader = function (buffer) {
-        var i, dmap, obj = OMap.readHeader(buffer, readDimension);
+        var i, dmap, obj = OMap.readHeader(buffer, Dimension.readHeader);
         dmap = new DimensionMap();
         for (i = 0; i < obj.keys.length; i++) {
             dmap.append(obj.keys[i], obj.values[i]);
