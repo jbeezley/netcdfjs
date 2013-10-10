@@ -160,8 +160,10 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         };
     }
     Dimension.readHeader = function (buffer, id) {
-        var size = buffer.read(numberType);
-        return new Dimension(size, id, size === 0);
+        var size = buffer.read(numberType), dim;
+        dim = new Dimension(size, id, size === 0);
+        Object.freeze(dim);
+        return dim;
     }
 
     function Attribute (type) {
@@ -209,6 +211,7 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
             attr[i] = val[i];
         }
         padSkip(buffer);
+        Object.freeze(attr);
         return attr;
     }
     
@@ -320,11 +323,12 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         for (i = 0; i < obj.keys.length; i++) {
             amap.append(obj.keys[i], obj.values[i]);
         }
+        Object.freeze(amap);
         return amap;
     };
 
     function Variable (type, dimensions, fill_value) {
-        var attr, attrs = AttributeMap();
+        var attr, attrs = AttributeMap(), offset;
         makeTypedObject(this, type);
         dP(this, "dimensions", { value: dimensions.keys });
         dP(this, "attributes", { get: function () { return attrs.toObject(); } });
@@ -437,7 +441,7 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         }
         nDims = buffer.read(numberType);
         dimids = buffer.read(numberType, nDims);
-        attrs = readAttributeMap(); //TODO!!!
+        attrs = readAttributeMap();
         type = typeMap(buffer.read(numberType));
         recsize = buffer.read(numberType);
         offset = buffer.read(o);
@@ -451,6 +455,8 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         for (o = 0; o < attrs.length; o++) {
             v.createAttribute(attrs.keys[i], attrs.values[i], attrs.values[i].type);
         }
+        dP(v, 'offset' , { value: offset });
+        Object.freeze(v);
         return v;
     }
 
@@ -481,6 +487,7 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         for (i = 0; i < obj.keys.length; i++) {
             vmap.append(obj.keys[i], obj.values[i]);
         }
+        Object.freeze(vmap);
         return vmap;
     };
 
@@ -498,21 +505,34 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         }
         return dmap;
     }
-    DimensionMap.readHeader = function (buffer) {
+    DimensionMap.readHeader = function (buffer, numrecs) {
         var i, dmap, obj = OMap.readHeader(buffer, Dimension.readHeader);
         dmap = new DimensionMap();
         for (i = 0; i < obj.keys.length; i++) {
+            if (obj.values[i].unlimited) {
+                obj.values[i].currentSize = numrecs;
+            }
             dmap.append(obj.keys[i], obj.values[i]);
         }
+        Object.freeze(dmap);
         return dmap;
     }
     
-    function NcFile (format) {
+    function NcFile (format, readwrite, argdims, argattrs, argvars) {
         var attrs = AttributeMap(),
             vars = VariableMap(),
             dims = DimensionMap();
+        if (readwrite === undefined) {
+            readwrite = 'w';
+        } else if (readwrite !== 'r' && readwrite !== 'w') {
+            throw new Error('Invalid read/write flag.')
+        }
         if (format === undefined) {
             format = 'NETCDF3_CLASSIC';
+        } else if (format === 'FROM_READHEADER') {
+            dims = argdims;
+            attrs = argattrs;
+            vars = argvars;
         }
         format = formats[format];
         if ( format === undefined ) {
@@ -520,21 +540,27 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         }
         dP(this, "offsets", { get: function () {
             var o = [], v, n, i;
-            n = this.headerSize();
-            // loop through non-record variables
-            for (i = 0; i < vars.length; i++) {
-                v = vars.values[i];
-                if (!v.isRecordVariable) {
-                    o[i] = n;
-                    n += v.recsize;
+            if (readwrite === 'w') {
+                n = this.headerSize();
+                // loop through non-record variables
+                for (i = 0; i < vars.length; i++) {
+                    v = vars.values[i];
+                    if (!v.isRecordVariable) {
+                        o[i] = n;
+                        n += v.recsize;
+                    }
                 }
-            }
-            // loop through record variables
-            for (i = 0; i < vars.length; i++) {
-                v = vars.values[i];
-                if (v.isRecordVariable) {
-                    o[i] = n;
-                    n += v.recsize;
+                // loop through record variables
+                for (i = 0; i < vars.length; i++) {
+                    v = vars.values[i];
+                    if (v.isRecordVariable) {
+                        o[i] = n;
+                        n += v.recsize;
+                    }
+                }
+            } else if (readwrite === 'r') {
+                for (i = 0; i < vars.length; i++) {
+                    o[i] = vars.values[i].offset;
                 }
             }
             return o;
@@ -553,92 +579,6 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         dP(this, "attributes", { get: function () { return attrs.toObject(); } });
         dP(this, "dimensions", { get: function () { return dims.toObject(); } });
         dP(this, "variables", { get: function () { return vars.toObject(); } });
-        this.createVariable = function (name, type, dimensions, fill_value) {
-            var i, v, dimName, dim,
-                vdims = DimensionMap();
-            if (typeof name !== 'string' || !name.length ) {
-                throw new Error("Invalid variable name.")
-            }
-            if (vars.get(name) !== undefined) {
-                throw new Error(["Variable name already exists: ", name].join(""));
-            }
-            for (i = 0; i < dimensions.length; i++) {
-                dimName = dimensions[i];
-                dim = dims.get(dimName);
-                if (dim === undefined) {
-                    throw new Error(["Undefined dimension: ", dimName].join(""));
-                }
-                if (i !== 0 && dim.unlimited) {
-                    throw new Error("Only the first dimension can be unlimited.")
-                }
-                vdims.append(dimName, dim);
-            }
-            v = new Variable(type, vdims, fill_value);
-            vars.append(name, v);
-            return v;
-        };
-        this.createDimension = function (name, size) {
-            var dim = new Dimension(size, dims.length, size === undefined), i;
-            if (typeof name !== 'string' || !name.length ) {
-                throw new Error("Invalid dimension name.")
-            }
-            if (dims.get(name) !== undefined) {
-                throw new Error(["Dimension name already exists: ", name].join(""));
-            }
-            if (dim.unlimited) {
-                for (i = 0; i < dims.length; i++) {
-                    if (dims.get(i).unlimited) {
-                        throw new Error("Only one unlimited dimension is allowed.")
-                    }
-                }
-            }
-            dims.append(name, dim);
-            return dim;
-        };
-        this.createAttribute = function (name, value, type) {
-            var attr = createAttribute(value, type);
-            attrs.append(name, attr);
-            return attr;
-        };
-        this.writeHeader = function (buffer) {
-            var offsetSize, n = this.headerSize(), bufarg, offsets = this.offsets;
-            //console.log(offsets.join(" "));
-            if (buffer === undefined) {
-                buffer = new DataView(new ArrayBuffer(n));
-            }
-            bufarg = buffer;
-            buffer = new wrapDataView(buffer);
-
-            if (format === formats.NETCDF3_CLASSIC) {
-                offsetSize = 4;
-            } else {
-                offsetSize = 8;
-            }
-            buffer.write("char", "CDF" + format);
-            buffer.write(numberType, this.numrecs);
-            dims.writeHeader(buffer);
-            attrs.writeHeader(buffer);
-            vars.writeHeader(buffer, offsetSize, offsets);
-            //console.log(buffer.debugString());
-            return bufarg;
-        };
-        this.readHeader = function (buffer) {
-            
-        };
-        this.headerSize = function () {
-            // format:
-            //   magic numercs dims attrs vars
-            var offset;
-            if (format === formats.NETCDF3_CLASSIC) {
-                offset = 4;
-            } else {
-                offset = 8;
-            }
-            return 4 + numberSize
-                   + dims.headerSize(offset)
-                   + vars.headerSize(offset)
-                   + attrs.headerSize(offset);
-        };
         this.toString = function (name) {
             var s = [];
             if (name === undefined) {
@@ -654,7 +594,115 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
             s.push("}");
             return s.join("\n");
         };
+        if (readwrite === 'w') {
+            this.createVariable = function (name, type, dimensions, fill_value) {
+                var i, v, dimName, dim,
+                    vdims = DimensionMap();
+                if (typeof name !== 'string' || !name.length ) {
+                    throw new Error("Invalid variable name.")
+                }
+                if (vars.get(name) !== undefined) {
+                    throw new Error(["Variable name already exists: ", name].join(""));
+                }
+                for (i = 0; i < dimensions.length; i++) {
+                    dimName = dimensions[i];
+                    dim = dims.get(dimName);
+                    if (dim === undefined) {
+                        throw new Error(["Undefined dimension: ", dimName].join(""));
+                    }
+                    if (i !== 0 && dim.unlimited) {
+                        throw new Error("Only the first dimension can be unlimited.")
+                    }
+                    vdims.append(dimName, dim);
+                }
+                v = new Variable(type, vdims, fill_value);
+                vars.append(name, v);
+                return v;
+            };
+            this.createDimension = function (name, size) {
+                var dim = new Dimension(size, dims.length, size === undefined), i;
+                if (typeof name !== 'string' || !name.length ) {
+                    throw new Error("Invalid dimension name.")
+                }
+                if (dims.get(name) !== undefined) {
+                    throw new Error(["Dimension name already exists: ", name].join(""));
+                }
+                if (dim.unlimited) {
+                    for (i = 0; i < dims.length; i++) {
+                        if (dims.get(i).unlimited) {
+                            throw new Error("Only one unlimited dimension is allowed.")
+                        }
+                    }
+                }
+                dims.append(name, dim);
+                return dim;
+            };
+            this.createAttribute = function (name, value, type) {
+                var attr = createAttribute(value, type);
+                attrs.append(name, attr);
+                return attr;
+            };
+            this.writeHeader = function (buffer) {
+                var offsetSize, n = this.headerSize(), bufarg, offsets = this.offsets;
+                //console.log(offsets.join(" "));
+                if (buffer === undefined) {
+                    buffer = new DataView(new ArrayBuffer(n));
+                }
+                bufarg = buffer;
+                buffer = new wrapDataView(buffer);
+    
+                if (format === formats.NETCDF3_CLASSIC) {
+                    offsetSize = 4;
+                } else {
+                    offsetSize = 8;
+                }
+                buffer.write("char", "CDF" + format);
+                buffer.write(numberType, this.numrecs);
+                dims.writeHeader(buffer);
+                attrs.writeHeader(buffer);
+                vars.writeHeader(buffer, offsetSize, offsets);
+                //console.log(buffer.debugString());
+                return bufarg;
+            };
+            this.headerSize = function () {
+                // format:
+                //   magic numercs dims attrs vars
+                var offset;
+                if (format === formats.NETCDF3_CLASSIC) {
+                    offset = 4;
+                } else {
+                    offset = 8;
+                }
+                return 4 + numberSize
+                       + dims.headerSize(offset)
+                       + vars.headerSize(offset)
+                       + attrs.headerSize(offset);
+            };
+        } else {
+            Object.freeze(this);
+        }
     }
-
+    NcFile.readHeader = function (buffer) {
+        var formatStr, fmt, offsetType, numrecs, dims, attrs, vars, file;
+        formatStr = buffer.read("char", 4);
+        if (formatStr.slice(0,3) !== 'CDF' ) {
+            throw new Error('Invalid netCDF file.');
+        }
+        fmt = formatStr.slice(3);
+        if (fmt === formats.NETCDF3_CLASSIC) {
+            fmt = 'NETCDF3_CLASSIC';
+            offsetType = 'int32';
+        } else if (format === formats.NETCDF3_64BIT) {
+            fmt = 'NETCDF_64BIT';
+            offsetType = 'int64';
+        } else {
+            throw new Error('Unsupport netCDF file format.')
+        }
+        numrecs = buffer.read(numberType);
+        dims = DimensionMap.readHeader(buffer, numrecs);
+        attrs = AttributeMap.readBuffer(buffer);
+        vars = VariableMap.readBuffer(buffer, offsetType);
+        file = new NcFile(fmt, 'FROM_READHEADER', dims, attrs, vars);
+    };
     return { NcFile: NcFile, types: Object.keys(invTypeMap) };
 });
