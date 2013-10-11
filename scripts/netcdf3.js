@@ -523,7 +523,7 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         var attrs = AttributeMap(),
             vars = VariableMap(),
             dims = DimensionMap(),
-            readwrite = 'w';
+            readwrite = 'w', sfmt;
         if (format === undefined) {
             format = 'NETCDF3_CLASSIC';
         } else if (format === 'FROM_READHEADER') {
@@ -533,7 +533,8 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
             vars = argvars;
             readwrite = 'r';
         }
-        format = formats[format];
+        sfmt = format;
+        format = formats[sfmt];
         if ( format === undefined ) {
             throw new Error("Invalid file format.");
         }
@@ -592,6 +593,9 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
             s.push(attrs.toString("\t\t"));
             s.push("}");
             return s.join("\n");
+        };
+        this.copy = function (fmt) {
+            return new NcFile('FROM_READHEADER', fmt || sfmt, dims, attrs, vars);
         };
         if (readwrite === 'w') {
             this.createVariable = function (name, type, dimensions, fill_value) {

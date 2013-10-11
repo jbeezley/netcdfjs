@@ -337,6 +337,16 @@ describe('netcdf3', function () {
             meta(f.createDimension, 0, 1).should.throw(Error, err);
             done();
         });
+        it('test copy method', function (done) {
+            var f = makeFile('NETCDF3_64BIT');
+            var g = f.copy('NETCDF3_CLASSIC');
+            var h = f.copy('NETCDF3_64BIT');
+            var j = f.copy();
+            f.toString().should.equal(g.toString());
+            f.toString().should.equal(h.toString());
+            f.toString().should.equal(j.toString());
+            done();
+        });
     })
 })
 
