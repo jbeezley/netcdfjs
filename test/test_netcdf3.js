@@ -1,4 +1,5 @@
 var chai = require('chai');
+var fs = require('fs');
 var expect = chai.expect;
 chai.should();
 
@@ -350,6 +351,17 @@ describe('netcdf3', function () {
     })
 })
 
+function readFileAsArrayBuffer(fileName) {
+    var data = fs.readFileSync(fileName);
+    var buffer = new ArrayBuffer(data.length);
+    var view = new DataView(buffer);
+    var i;
+    for (i = 0; i < data.length; i++) {
+        view.setUint8(i, data.readUInt8(i));
+    }
+    return view;
+}
+
 describe('netcdf3 read/write', function () {
     it('test read/write header of an empty file', function (done) {
         var fwrite = new NcFile(), fread, buffer;
@@ -368,6 +380,13 @@ describe('netcdf3 read/write', function () {
     it('test read method', function (done) {
         var f = makeFile();
         var A = f.variables.var1.read(0);
+        done();
+    });
+    it('test read of an empty file', function (done) {
+        var data = readFileAsArrayBuffer('test/empty.nc');
+        var f = NcFile.readHeader(data);
+        var g = new NcFile();
+        f.toString().should.equal(g.toString());
         done();
     });
 })
