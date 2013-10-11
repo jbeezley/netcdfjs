@@ -344,25 +344,30 @@ describe('netcdf3', function () {
             var j = f.copy();
             f.toString().should.equal(g.toString());
             f.toString().should.equal(h.toString());
-            f.toString().should.equal(j.toString());
+            f.toString().should.equal(j.toString());;
             done();
         });
     })
 })
 
 describe('netcdf3 read/write', function () {
-    it('test read/write of an empty file', function (done) {
+    it('test read/write header of an empty file', function (done) {
         var fwrite = new NcFile(), fread, buffer;
         buffer = fwrite.writeHeader();
         fread = NcFile.readHeader(buffer);
         fread.toString().should.equal(fwrite.toString());
         done();
     });
-    it('test read/write of the example file', function (done) {
+    it('test read/write header of the example file', function (done) {
         var fwrite = makeFile(), fread, buffer;
         buffer = fwrite.writeHeader();
         fread = NcFile.readHeader(buffer);
         fread.toString().should.equal(fwrite.toString());
         done();
-    })
+    });
+    it('test read method', function (done) {
+        var f = makeFile();
+        var A = f.variables.var1.read(0);
+        done();
+    });
 })

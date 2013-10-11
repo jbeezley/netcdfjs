@@ -331,7 +331,7 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         return amap;
     };
 
-    function Variable (type, dimensions, fill_value) {
+    function Variable (type, dimensions, fill_value, getOffset) {
         var attr, attrs = AttributeMap(), offset;
         makeTypedObject(this, type);
         dP(this, "dimensions", { value: dimensions.keys });
@@ -435,6 +435,21 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
             buffer.write(o, offset);  
             //console.log("final: " + buffer.tell());
         };
+        this.read = function (start, count) {
+            var A, size, i, offset = getOffset();
+            if (start === undefined) {
+                start = []
+                for (i = 0; i < dimensions.length; i++) {
+                    start.push(0);
+                }
+            }
+            if (count === undefined) {
+                count = this.shape;
+            }
+            size = count.reduce(function (a,b) { return a*b; });
+            A = new ArrayBuffer(size * sizeMap[type]);
+            return A;
+        }
     }
     Variable.readHeader = function (buffer, offsetType, dimensions) {
         var i, nDims, dimids, type, recsize, offset, attrs, v, fill, dims = new DimensionMap();
@@ -600,7 +615,7 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         if (readwrite === 'w') {
             this.createVariable = function (name, type, dimensions, fill_value) {
                 var i, v, dimName, dim,
-                    vdims = DimensionMap();
+                    vdims = DimensionMap(), getOffset, that = this;
                 if (typeof name !== 'string' || !name.length ) {
                     throw new Error("Invalid variable name.")
                 }
@@ -618,7 +633,11 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
                     }
                     vdims.append(dimName, dim);
                 }
-                v = new Variable(type, vdims, fill_value);
+                getOffset = function () {
+                    var off = that.offsets, ivar = vars.indexOf(name);
+                    return off[ivar];
+                }
+                v = new Variable(type, vdims, fill_value, getOffset);
                 vars.append(name, v);
                 return v;
             };
