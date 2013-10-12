@@ -11,7 +11,7 @@ define(['./common.js'], function (common) {
     
     // simple ordered mapping container
     // (also protects against keys conflicting with methods)
-    function OMap (valueCheck) {
+    function OMap (valueCheck, allowDup) {
         var keys = [], values = [];
         // optional argument checks values added to the mapping, which
         // by default returns true.
@@ -25,7 +25,7 @@ define(['./common.js'], function (common) {
                 if (typeof key !== "string") {
                     throw new TypeError("Mapped keys must be strings.");
                 }
-                if (keys.indexOf(key) >= 0) {
+                if (!allowDup && keys.indexOf(key) >= 0) {
                     throw new Error ("Duplicate key.");
                 }
                 if (typeof value === "string" || typeof value === "number" || !valueCheck(value)) {

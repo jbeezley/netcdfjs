@@ -452,7 +452,7 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         }
     }
     Variable.readHeader = function (buffer, offsetType, dimensions) {
-        var i, nDims, dimids, type, recsize, offset, attrs, v, fill, dims = new DimensionMap();
+        var i, nDims, dimids, type, recsize, offset, attrs, v, fill, dims = new DimensionMap(true);
         nDims = buffer.read(numberType);
         dimids = buffer.read(numberType, nDims);
         attrs = AttributeMap.readHeader(buffer);
@@ -508,8 +508,8 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         return vmap;
     };
 
-    function DimensionMap() {
-        var dmap = new OMap(checkDimension);
+    function DimensionMap(allowDup) {
+        var dmap = new OMap(checkDimension, allowDup);
         dP(dmap, "_id", { value: NC_DIMENSION });
         dmap.toString = function (tab) {
             var s = dmap.toLines(tab), i;
@@ -615,7 +615,7 @@ define(['./wrapdataview.js', './orderedmap.js', './common.js'], function (wrapDa
         if (readwrite === 'w') {
             this.createVariable = function (name, type, dimensions, fill_value) {
                 var i, v, dimName, dim,
-                    vdims = DimensionMap(), getOffset, that = this;
+                    vdims = DimensionMap(true), getOffset, that = this;
                 if (typeof name !== 'string' || !name.length ) {
                     throw new Error("Invalid variable name.")
                 }
