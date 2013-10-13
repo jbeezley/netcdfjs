@@ -389,11 +389,14 @@ describe('netcdf3 read/write', function () {
         f.toString().should.equal(g.toString());
         done();
     });
-    var files = ['ref_ctest1_nc4.nc'], file;
+    var file, files = ['ref_ctest1_nc4.nc', 'ref_times.nc',
+                       'ref_tst_format_att.nc', 'ref_tst_charfill.nc',
+                       'ref_tst_nans.nc', 'ref_tst_noncoord.nc',
+                       'ref_tst_small.nc', 'ref_tst_special_atts3.nc',
+                       'ref_tst_unicode.nc'];
     for (var i = 0; i < files.length; i++) {
         file = files[i];
         it('test read ' + file, function (done) {
-            
             var data = readFileAsArrayBuffer('test/cdl/' + file);
             var f = NcFile.readHeader(data);
             f.toString();
