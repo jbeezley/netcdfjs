@@ -5,8 +5,8 @@
     "keywords": ["netcdf", "binary", "data", "file", "read", "write"],
     "homepage": "https://github.com/jbeezley/netcdfjs",
     "author": "Jonathan Beezley <jon.beezley@gmail.com>",
-    "files": ["scripts/netcdf3.js", "scripts/wrapdataview.js", "scripts/orderedmap.js", "scripts/common.js"],
-    "main": "scripts/netcdf3.js",
+    "files": [ "src/attribute.js", "src/ncDefs.js",  "src/netcdf3.js", "src/orderedMap.js", "src/types.js" ],
+    "main": "src/netcdf3.js",
     "scripts": {
         "test": "make test"
     },
