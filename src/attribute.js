@@ -56,6 +56,17 @@ define(function (require) {
             }
             values[i] = value;
         };
+        this.toString = function () {
+            var str = [], j;
+            if (type.numeric) {
+                for (j = 0; j < values.length; j++) {
+                    str.push(type.toString(values[j]));
+                }
+            } else {
+                str.push(type.toString(values.join("")));
+            }
+            return str.join(", ");
+        };
         this.writeSize = function () {
             var n = numberType.size * 2 + this.getLength() * type.size;
             return n + padLength(n);
