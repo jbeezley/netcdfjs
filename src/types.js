@@ -30,6 +30,7 @@ define(function () {
                         fmtFunction, typeFill,
                         cdlName, dataViewType,
                         numeric, decimal, integer, string) {
+        var that = this;
         this.type = typeName;
         this.ncType = ncTypeName;
         this.id = ncTypeId;
@@ -62,6 +63,42 @@ define(function () {
             } else {
                 return true;
             }
+        };
+        this.read = function (index, buffer, length) {
+            var val, i;
+            if (length === undefined) {
+                val = buffer['get' + dataViewType](index);
+                if (string) {
+                    val = String.fromCharCode(val);
+                }
+            } else {
+                val = [];
+                for (i = 0; i < length; i++) {
+                    val.push(that.read(index + i*typeSize, buffer));
+                }
+                if (string) {
+                    val = val.join('');
+                }
+            }
+            return val;
+        };
+        this.write = function (index, buffer, value) {
+            var i, n = 0;
+            if (typeof(value) === 'string') {
+                for(i = 0; i < value.length; i++) {
+                    n++;
+                    buffer.setUint8(index + i, value.charCodeAt(i));
+                }
+            } else if (Array.isArray(value)) {
+                for(i = 0; i < value.length; i++) {
+                    n += typeSize;
+                    that.write(index + i*typeSize, buffer, value[i]);
+                }
+            } else {
+                n += typeSize;
+                buffer['set' + dataViewType](index, value);
+            }
+            return n;
         };
         Object.freeze(this);
     }

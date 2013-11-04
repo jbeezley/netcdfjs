@@ -3,25 +3,18 @@ if (typeof define !== 'function') {
     var define = require('amdefine')(module);
 }
 
-define(function (require) {
+define(function () {
     'use strict';
 
-    var types = require('./types.js');
-
     function Buffer(buffer) {
-        var index = 0, that = this;
+        var index = 0;
         this.tell = function () { return index; };
         this.seek = function (newIndex) { index = newIndex; };
-        this.write = function (type, value) {
-            var i;
-            if (Array.isArray(value)) {
-                for (i = 0; i < value.length; i++) {
-                    that.write(type, value[i]);
-                }
-            } else {
-            }
+        this.read = function (type, count) {
+            return type.read(index, buffer, count);
         };
-        this.read = function (type, n) {
+        this.write = function (type, value) {
+            type.write(index, buffer, value);
         };
     }
 

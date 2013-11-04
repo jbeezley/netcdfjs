@@ -5,6 +5,18 @@ chai.should();
 var libpath = process.env['NETCDFJS_COV'] ? '../src-cov' : '../src';
 var types = require(libpath + '/types.js');
 
+function checkReadWrite(buffer, type, value, precision) {
+    var val;
+    type.write(0, buffer, value);
+    val = type.read(0, buffer, value.length);
+    if (precision === undefined) {
+        val.should.eql(value);
+    } else {
+        Number(val.toPrecision(precision)).should.eql(value);
+    }
+
+}
+
 describe('types', function () {
     describe('test properties', function () {
         var i, type;
@@ -18,15 +30,17 @@ describe('types', function () {
                 type.should.have.property('fill').that.is.a('string').and.length(type.size);
                 type.should.have.property('cdlType').that.is.a('string');
                 type.should.have.property('toString');
-    
+                type.should.have.property('validate');
+                type.should.have.property('read');
+                type.should.have.property('write');
+                Object.isSealed(type).should.equal(true);
                 done();
             });
         }
     });
     describe('char', function () {
-        var validate, type;
+        var type = types.char;
         it('toString', function (done) {
-            type = types.char;
             type.toString().should.equal('char');
             type.toString('0').should.equal('"0"');
             type.toString('this is a string').should.equal('"this is a string"');
@@ -34,7 +48,7 @@ describe('types', function () {
             done(); 
         });
         it('validate', function (done) {
-            var validate = types.char.validate;
+            var validate = type.validate;
             validate(0).should.equal(false);
             validate(1).should.equal(false);
             validate(-1).should.equal(false);
@@ -48,11 +62,19 @@ describe('types', function () {
             validate(Infinity).should.equal(false);
             done();
         });
+        it('read/write', function (done) {
+            var buffer = DataView(ArrayBuffer(128)), i;
+            var values = ['', ' ', '\x00', '\xFF', 'this is a string', ' \xF8a\xA0\x00b\x33111'];
+            for (i = 0; i < values.length; i++) {
+                checkReadWrite(buffer, type, values[i]);
+            }
+
+            done();
+        });
     });
     describe('int8', function () {
-        var validate, type;
+        var type = types.int8;
         it('toString', function (done) {
-            type = types.int8;
             type.toString().should.equal('int8');
             type.toString(0).should.equal('0b');
             type.toString((1 << 7) - 1).should.equal('127b');
@@ -61,7 +83,7 @@ describe('types', function () {
             done(); 
         });
         it('validate', function (done) {
-            var validate = types.int8.validate;
+            var validate = type.validate;
             validate(0).should.equal(true);
             validate(1).should.equal(true);
             validate(-1).should.equal(true);
@@ -74,10 +96,19 @@ describe('types', function () {
             validate(Infinity).should.equal(false);
             done();
         });
+        it('read/write', function (done) {
+            var buffer = DataView(ArrayBuffer(128)), i;
+            var values = [0, 1, -1, 0x7F, -0x80];
+            for (i = 0; i < values.length; i++) {
+                checkReadWrite(buffer, type, values[i]);
+            }
+
+            done();
+        });
     });
     describe('int16', function () {
+        var type = types.int16;
         it('toString', function (done) {
-            type = types.int16;
             type.toString().should.equal('int16');
             type.toString(0).should.equal('0s');
             type.toString((1 << 15) - 1).should.equal('32767s');
@@ -86,7 +117,7 @@ describe('types', function () {
             done(); 
         });
         it('validate', function (done) {
-            var validate = types.int16.validate;
+            var validate = type.validate;
             validate(0).should.equal(true);
             validate(1).should.equal(true);
             validate(-1).should.equal(true);
@@ -99,10 +130,19 @@ describe('types', function () {
             validate(Infinity).should.equal(false);
             done();
         });
+        it('read/write', function (done) {
+            var buffer = DataView(ArrayBuffer(128)), i;
+            var values = [0, 1, -1, 0x7F, -0x80, 0x7FFF, -0x8000];
+            for (i = 0; i < values.length; i++) {
+                checkReadWrite(buffer, type, values[i]);
+            }
+
+            done();
+        });
     });
     describe('int32', function () {
+        var type = types.int32;
         it('toString', function (done) {
-            type = types.int32;
             type.toString().should.equal('int32');
             type.toString(0).should.equal('0');
             type.toString(0x7FFFFFFF).should.equal('2147483647');
@@ -111,7 +151,7 @@ describe('types', function () {
             done(); 
         });
         it('validate', function (done) {
-            var validate = types.int32.validate;
+            var validate = type.validate;
             validate(0).should.equal(true);
             validate(1).should.equal(true);
             validate(-1).should.equal(true);
@@ -124,10 +164,19 @@ describe('types', function () {
             validate(Infinity).should.equal(false);
             done();
         });
+        it('read/write', function (done) {
+            var buffer = DataView(ArrayBuffer(128)), i;
+            var values = [0, 1, -1, 0x7F, -0x80, 0x7FFF, -0x8000, 0x7FFFFFFF, -0x80000000];
+            for (i = 0; i < values.length; i++) {
+                checkReadWrite(buffer, type, values[i]);
+            }
+
+            done();
+        });
     });
     describe('float32', function () {
+        var type = types.float32;
         it('toString', function (done) {
-            type = types.float32;
             type.toString().should.equal('float32');
             type.toString(0).should.equal('0.0f');
             type.toString(1.1).should.equal('1.1f');
@@ -136,7 +185,7 @@ describe('types', function () {
             done(); 
         });
         it('validate', function (done) {
-            var validate = types.float32.validate;
+            var validate = type.validate;
             validate(0).should.equal(true);
             validate(1).should.equal(true);
             validate(-1).should.equal(true);
@@ -149,10 +198,20 @@ describe('types', function () {
             validate(Infinity).should.equal(false);
             done();
         });
+        it('read/write', function (done) {
+            var buffer = DataView(ArrayBuffer(128)), i;
+            var values = [0, 1, -1, 0x7F, -0x80, 0x7FFF, -0x8000, 
+                          1e-32, 3.14159, -1.112e31];
+            for (i = 0; i < values.length; i++) {
+                checkReadWrite(buffer, type, values[i], 7);
+            }
+
+            done();
+        });
     });
     describe('float64', function () {
+        var type = types.float64;
         it('toString', function (done) {
-            type = types.float64;
             type.toString().should.equal('float64');
             type.toString(0).should.equal('0.0');
             type.toString(1.1).should.equal('1.1');
@@ -161,7 +220,7 @@ describe('types', function () {
             done(); 
         });
         it('validate', function (done) {
-            var validate = types.float64.validate;
+            var validate = type.validate;
             validate(0).should.equal(true);
             validate(1).should.equal(true);
             validate(-1).should.equal(true);
@@ -172,6 +231,16 @@ describe('types', function () {
             validate([0]).should.equal(false);
             validate(NaN).should.equal(false);
             validate(Infinity).should.equal(false);
+            done();
+        });
+        it('read/write', function (done) {
+            var buffer = DataView(ArrayBuffer(128)), i;
+            var values = [0, 1, -1, 0x7F, -0x80, 0x7FFF, -0x8000, 0x7FFFFFFF, -0x80000000,
+                          1e-32, 3.14159, -1.112e31];
+            for (i = 0; i < values.length; i++) {
+                checkReadWrite(buffer, type, values[i]);
+            }
+
             done();
         });
     });
