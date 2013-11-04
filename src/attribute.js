@@ -88,7 +88,7 @@ define(function (require) {
         };
         Object.seal(this);
     }
-    Attribute.read = function(buffer) {
+    Attribute.read = function (buffer) {
         var name = readArray(buffer, types.char),
             type = readType(buffer),
             values = readArray(buffer, type),

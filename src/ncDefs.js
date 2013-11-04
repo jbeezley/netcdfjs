@@ -25,11 +25,14 @@ define(function (require) {
     }
 
     return {
-        NC_ABSENT : [0, 0],
+        NC_ABSENT : 0,
         NC_DIMENSION : 10,
         NC_VARIABLE : 11,
         NC_ATTRIBUTE : 12,
         NC_UNLIMITED : 0,
+        NC_MAGIC: 'CDF',
+        NC_32BIT: '\x01',
+        NC_64BIT: '\x02',
         numberType: types.int32,
         padLength: padLength,
         padSkip: padSkip,

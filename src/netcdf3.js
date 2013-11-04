@@ -9,25 +9,49 @@ define(function (require) {
     var Attribute = require('./attribute.js');
     var Dimension = require('./dimension.js');
     var Variable  = require('./variable.js');
+    var Buffer    = require('./buffer.js');
     var types     = require('./types.js');
     var ncDefs    = require('./ncDefs.js');
     var getByName = ncDefs.getByName;
     var getObjectFromArray = ncDefs.getObjectFromArray;
+    var numberType = ncDefs.numberType;
     
     function NcFile(buffer, readWrite, fileType) {
         var vars = [];
         var dims = [];
         var gVar = new Variable('', types.char);
         var buffer;
+        var offsetSize = 32;
+        
+        function headerSize() {
+            var i;
+            var n = 4; // magic + version
+            n += numberType.size; // numrecs
+            for (i = 0; i < dims.length; i++) { // dimensions
+                n += dims[i].writeSize();
+            }
+            n += gVar.writeAttributesHeaderSize(); // global attributes
+            for (i = 0; i < vars.length; i++) { // variables
+                n += vars[i].writeHeaderSize();
+                n += offsetSize; // offsets handled by the file class
+            }
+            return n;
+        }
 
         function writeHeader() {
+            var nbytes, buffer;
             if (readWrite !== 'w') {
                 throw new Error('writeHeader called on read-only file');
             }
+            nbytes = headerSize();
+            buffer = new Buffer(new DataView(new ArrayBuffer(nbytes)));
+
+            
         }
         
         if (readWrite === undefined) { readWrite = 'w'; }
         if (fileType === undefined) { fileType = 'NETCDF_CLASSIC'; }
+        if (fileType === 'NETCDF_64BITOFFSET') { offsetSize = 64; }
         
         this.readWrite = readWrite;
         this.fileType = fileType;
