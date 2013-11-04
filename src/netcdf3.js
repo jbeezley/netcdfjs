@@ -19,13 +19,19 @@ define(function (require) {
         var dims = [];
         var gVar = new Variable('', types.char);
         var buffer;
+
+        function writeHeader() {
+            if (readWrite !== 'w') {
+                throw new Error('writeHeader called on read-only file');
+            }
+        }
         
         if (readWrite === undefined) { readWrite = 'w'; }
         if (fileType === undefined) { fileType = 'NETCDF_CLASSIC'; }
         
         this.readWrite = readWrite;
         this.fileType = fileType;
-        
+
         if (readWrite === 'w') {
             this.createDimension = function (name, size) {
                 var dim = new Dimension(name, dims.length, size);

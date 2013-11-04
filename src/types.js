@@ -28,7 +28,8 @@ define(function () {
     function TypeObject(typeName, ncTypeName,
                         ncTypeId, typeSize,
                         fmtFunction, typeFill,
-                        cdlName, numeric, decimal, integer, string) {
+                        cdlName, dataViewType,
+                        numeric, decimal, integer, string) {
         this.type = typeName;
         this.ncType = ncTypeName;
         this.id = ncTypeId;
@@ -46,6 +47,7 @@ define(function () {
         this.decimal = decimal;
         this.integer = integer;
         this.string = string;
+        this.dataViewType = dataViewType;
         this.validate = function (value) {
             if (numeric && typeof(value) !== 'number') {
                 return false;
@@ -65,12 +67,12 @@ define(function () {
     }
 
     var types = {
-        'char'    : new TypeObject('char', 'NC_CHAR', 2, 1, fmtString(), '\x00', 'char', false, false, false, true),
-        'int8'    : new TypeObject('int8', 'NC_BYTE', 1, 1, fmtInt('b'), '\x81', 'byte', true, false, true, false),
-        'int16'   : new TypeObject('int16', 'NC_SHORT', 3, 2, fmtInt('s'), '\x80\x01', 'short', true, false, true, false),
-        'int32'   : new TypeObject('int32', 'NC_INT', 4, 4, fmtInt(''), '\x80\x00\x00\x01', 'int', true, false, true, false),
-        'float32' : new TypeObject('float32', 'NC_FLOAT', 5, 4, fmtFloat('f'), '\x7C\xF0\x00\x00', 'float', true, true, false, false),
-        'float64' : new TypeObject('float64', 'NC_DOUBLE', 6, 8, fmtFloat(''), '\x47\x9E\x00\x00\x00\x00\x00\x00', 'double', true, true, false, false)
+        'char'    : new TypeObject('char', 'NC_CHAR', 2, 1, fmtString(), '\x00', 'char', 'Uint8', false, false, false, true),
+        'int8'    : new TypeObject('int8', 'NC_BYTE', 1, 1, fmtInt('b'), '\x81', 'byte', 'Int8', true, false, true, false),
+        'int16'   : new TypeObject('int16', 'NC_SHORT', 3, 2, fmtInt('s'), '\x80\x01', 'short', 'Int16', true, false, true, false),
+        'int32'   : new TypeObject('int32', 'NC_INT', 4, 4, fmtInt(''), '\x80\x00\x00\x01', 'int', 'Int32', true, false, true, false),
+        'float32' : new TypeObject('float32', 'NC_FLOAT', 5, 4, fmtFloat('f'), '\x7C\xF0\x00\x00', 'float', 'Float32', true, true, false, false),
+        'float64' : new TypeObject('float64', 'NC_DOUBLE', 6, 8, fmtFloat(''), '\x47\x9E\x00\x00\x00\x00\x00\x00', 'double', 'Float64', true, true, false, false)
     };
 
     Object.freeze(types);
