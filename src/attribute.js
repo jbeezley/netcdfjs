@@ -9,7 +9,13 @@ define(function (require) {
     var ncDefs = require('./ncDefs.js'),
         numberType = ncDefs.numberType,
         padLength = ncDefs.padLength,
-        padBuffer = ncDefs.padBuffer;
+        padBuffer = ncDefs.padBuffer,
+        readType = ncDefs.readType,
+        writeArray = ncDefs.writeArray,
+        readArray = ncDefs.readArray,
+        writeArraySize = ncDefs.writeArraySize;
+
+    var types = require('./types.js');
 
     function Attribute(name, type) {
         var values = [];
@@ -70,10 +76,11 @@ define(function (require) {
             return tab + name + " = " + str.join(", ") + " ;\n";
         };
         this.writeSize = function () {
-            var n = numberType.size * 2 + this.getLength() * type.size;
+            var n = writeArraySize(types.char, name) + numberType.size * 2 + this.getLength() * type.size;
             return n + padLength(n);
         };
         this.write = function (buffer) {
+            writeArray(buffer, types.char, name);
             buffer.write(numberType, type.id);
             buffer.write(numberType, this.getLength());
             buffer.write(type, values);
@@ -81,6 +88,14 @@ define(function (require) {
         };
         Object.seal(this);
     }
+    Attribute.read = function(buffer) {
+        var name = readArray(buffer, types.char),
+            type = readType(buffer),
+            values = readArray(buffer, type),
+            attr = new Attribute(name, type);
+        attr.setValue(values);
+        return attr;
+    };
 
     return Attribute;
 });

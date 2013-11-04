@@ -24,7 +24,6 @@ define(function (require) {
         buffer.seek(buffer.tell() + n);
     }
 
-
     return {
         NC_ABSENT : [0, 0],
         NC_DIMENSION : 10,
@@ -66,6 +65,30 @@ define(function (require) {
                 }
             }
             return obj;
+        },
+        writeArray: function (buffer, type, arr) {
+            buffer.write(types.int32, arr.length);
+            buffer.write(type, arr);
+        },
+        writeArraySize: function (type, arr) {
+            return types.int32.size + type.size * arr.length;
+        },
+        readArray: function (buffer, type) {
+            var n = buffer.read(types.int32);
+            return buffer.read(type, n);
+        },
+        readType: function (buffer) {
+            var id = buffer.read(types.int32);
+            var typeName, type;
+            for (typeName in types) {
+                if(types.hasOwnProperty(typeName)) {
+                    type = types[typeName];
+                    if (type.id === id) {
+                        return type;
+                    }
+                }
+            }
+            throw new Error("Invalid type read from buffer: " + id.toString());
         }
     };
 });
