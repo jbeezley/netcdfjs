@@ -24,6 +24,7 @@ define(function (require) {
         buffer.seek(buffer.tell() + n);
     }
 
+
     return {
         NC_ABSENT : [0, 0],
         NC_DIMENSION : 10,
@@ -33,6 +34,38 @@ define(function (require) {
         numberType: types.int32,
         padLength: padLength,
         padSkip: padSkip,
-        padBuffer: padBuffer
+        padBuffer: padBuffer,
+        getByName: function (A, name) {
+            var i;
+            for (i = 0; i < A.length; i++) {
+                if (A[i] !== undefined && A[i].name === name) { return A[i]; }
+            }
+            return undefined;
+        },
+        getNameArray: function (A) {
+            var i, names = [];
+            for (i = 0; i < A.length; i++) {
+                if (A[i] !== undefined) { names.push(A[i].name); }
+            }
+            return names;
+        },
+        popNameArray: function (A, name) {
+            var i;
+            for (i = 0; i < A.length; i++) {
+                if(A[i] !== undefined && A[i].name === name) {
+                    return A.splice(i, 1)[0];
+                }
+            }
+            return undefined;
+        },
+        getObjectFromArray: function (A) {
+            var obj = {}, i;
+            for (i = 0; i < A.length; i++) {
+                if(A[i] !== undefined) {
+                    obj[A[i].name] = A[i];
+                }
+            }
+            return obj;
+        }
     };
 });

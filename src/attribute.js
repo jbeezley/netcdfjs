@@ -56,8 +56,10 @@ define(function (require) {
             }
             values[i] = value;
         };
-        this.toString = function () {
+        this.toString = function (tab) {
             var str = [], j;
+            //if (values.length === 0) { return ''; }
+            if (tab === undefined) { tab = ''; }
             if (type.numeric) {
                 for (j = 0; j < values.length; j++) {
                     str.push(type.toString(values[j]));
@@ -65,7 +67,7 @@ define(function (require) {
             } else {
                 str.push(type.toString(values.join("")));
             }
-            return str.join(", ");
+            return tab + name + " = " + str.join(", ") + " ;\n";
         };
         this.writeSize = function () {
             var n = numberType.size * 2 + this.getLength() * type.size;
