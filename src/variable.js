@@ -72,6 +72,7 @@ define(function (require) {
             for (i = 0; i < dimensions.length; i++) {
                 shp.push(dimensions[i].getCurrentSize());
             }
+            return shp;
         };
         this.size = function () {
             var shape = that.shape();
@@ -119,7 +120,7 @@ define(function (require) {
             for (i = 0; i < dimensions.length; i++) {
                 buffer.write(numberType, dimensions[i].id);
             }
-            that.writeAttributes(buffer);
+            that.writeAttributesHeader(buffer);
             buffer.write(numberType, type.id);
             buffer.write(numberType, that.vsize());
         };

@@ -40,7 +40,7 @@ define(function (require) {
         }
         
         function readHeader() {
-            var value, numrecs, ndims, nvars, nattrs, i, attrs, v;
+            var value, numrecs, ndims, nvars, i, attrs, v;
             if (readWrite !== 'r') {
                 throw new Error('readHeader called on write-only file');
             }
@@ -223,6 +223,11 @@ define(function (require) {
             }
             str.push('}');
             return str.join('');
+        };
+        this.close = function () {
+            if (defineMode) {
+                writeHeader();
+            }
         };
         Object.freeze(this);
     }

@@ -18,7 +18,8 @@ describe('NcFile', function () {
         a.setValue([1,2,3]);
         a = f.createAttribute('attrStr', 'char');
         a.setValue('I am an attribute');
-        console.log('\n' + f.toString() + '\n');
+        //console.log('\n' + f.toString() + '\n');
+        f.close();
         done();
     });
 });
