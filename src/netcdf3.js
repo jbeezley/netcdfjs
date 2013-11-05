@@ -21,6 +21,8 @@ define(function (require) {
         var gVar = new Variable('', types.char);
         var offsetSize = 32;
         var defineMode = true;
+        var offsets = [];
+        var recsize = 0;
         
         function headerSize() {
             var i;
@@ -35,6 +37,60 @@ define(function (require) {
                 n += offsetSize; // offsets handled by the file class
             }
             return n;
+        }
+        
+        function readHeader() {
+            var value, numrecs, ndims, nvars, nattrs, i, attrs, v;
+            if (readWrite !== 'r') {
+                throw new Error('readHeader called on write-only file');
+            }
+            if (!defineMode) {
+                throw new Error('readHeader called twice');
+            }
+            value = buffer.read(types.char, 4);
+            if (value.slice(0,3) !== ncDefs.NC_MAGIC) {
+                throw new Error('Invalid netcdf file');
+            } else if (value[3] === ncDefs.NC_32BIT) {
+                fileType = 'NETCDF_CLASSIC';
+                offsetSize = 32;
+            } else if (value[3] === ncDefs.NC_64BIT) {
+                fileType = 'NETCDF-64BITOFFSET';
+                offsetSize = 64;
+            } else {
+                throw new Error('Unsupported file type');
+            }
+            numrecs = buffer.read(numberType);
+            value = buffer.read(numberType);
+            ndims = buffer.read(numberType);
+            if (value !== ncDefs.NC_DIMENSION || value !== ncDefs.NC_ABSENT) {
+                throw new Error('Invalid netcdf file: no dimensions found');
+            }
+            for (i = 0; i < ndims; i++) {
+                dims.push(Dimension.read(buffer, i));
+            }
+            attrs = Variable.readAttributesHeader(buffer);
+            for (i = 0; i < attrs.length; i++) {
+                gVar.addAttribute(attrs[i]);
+            }
+            value = buffer.read(numberType);
+            nvars = buffer.read(numberType);
+            if (value !== ncDefs.NC_VARIABLE || value !== ncDefs.NC_ABSENT) {
+                throw new Error('Invalid netcdf file: no variables found');
+            }
+            for (i = 0; i < nvars; i++) {
+                v = Variable.readHeader(buffer, dims);
+                vars.push(v);
+                if (offsetSize === 64) {
+                    value = buffer.read(numberType);
+                    if (value !== 0) {
+                        throw new Error('Unsupported offset in 64 bit file');
+                    }
+                    offsets[i] = buffer.read(numberType);
+                    if (v.unlimited) { recsize += v.vsize(); }
+                }
+            }
+
+            defineMode = false;
         }
 
         function writeHeader() {
@@ -74,6 +130,7 @@ define(function (require) {
                         buffer.write(numberType, 0);
                     }
                     buffer.write(numberType, offset);
+                    offsets[i] = offset;
                     offset += vars[i].vsize();
                     if (offset > 0x7FFFFFFF) { // for now only supporting 32 bit signed offset even for 64 bit files
                         throw new Error('Offset too large for this netcdf implementation, sorry.');
@@ -87,7 +144,9 @@ define(function (require) {
                         buffer.write(numberType, 0);
                     }
                     buffer.write(numberType, offset);
+                    offsets[i] = offset;
                     offset += vars[i].vsize();
+                    recsize += vars[i].vsize();
                     if (offset > 0x7FFFFFFF) { // for now only supporting 32 bit signed offset even for 64 bit files
                         throw new Error('Offset too large for this netcdf implementation, sorry.');
                     }
@@ -133,6 +192,8 @@ define(function (require) {
                 return v;
             };
         } else if (readWrite === 'r') {
+            buffer = new Buffer(buffer);
+            readHeader();
         } else {
             throw new Error('Invalid readWrite flag: ' + readWrite);
         }
