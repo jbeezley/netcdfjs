@@ -72,13 +72,17 @@ define(function (require) {
         writeArray: function (buffer, type, arr) {
             buffer.write(types.int32, arr.length);
             buffer.write(type, arr);
+            padBuffer(buffer);
         },
         writeArraySize: function (type, arr) {
-            return types.int32.size + type.size * arr.length;
+            var n = types.int32.size + type.size * arr.length;
+            return n + padLength(n);
         },
         readArray: function (buffer, type) {
-            var n = buffer.read(types.int32);
-            return buffer.read(type, n);
+            var n = buffer.read(types.int32), value;
+            value = buffer.read(type, n);
+            padSkip(buffer);
+            return value;
         },
         readType: function (buffer) {
             var id = buffer.read(types.int32);

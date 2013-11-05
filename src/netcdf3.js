@@ -6,7 +6,6 @@ if (typeof define !== 'function') {
 define(function (require) {
     'use strict';
 
-    var Attribute = require('./attribute.js');
     var Dimension = require('./dimension.js');
     var Variable  = require('./variable.js');
     var Buffer    = require('./buffer.js');
@@ -20,8 +19,8 @@ define(function (require) {
         var vars = [];
         var dims = [];
         var gVar = new Variable('', types.char);
-        var buffer;
         var offsetSize = 32;
+        var defineMode = true;
         
         function headerSize() {
             var i;
@@ -39,14 +38,62 @@ define(function (require) {
         }
 
         function writeHeader() {
-            var nbytes, buffer;
+            var nbytes, i, offset, numrecs;
             if (readWrite !== 'w') {
                 throw new Error('writeHeader called on read-only file');
             }
+            if (!defineMode) {
+                throw new Error('Header already exists');
+            }
             nbytes = headerSize();
             buffer = new Buffer(new DataView(new ArrayBuffer(nbytes)));
-
-            
+            buffer.write(types.char, ncDefs.NC_MAGIC);
+            if (fileType === 'NETCDF_CLASSIC') {
+                buffer.write(types.char, ncDefs.NC_32BIT);
+            } else if (fileType === 'NETCDF_64BITOFFSET') {
+                buffer.write(types.char, ncDefs.NC_64BIT);
+            } else {
+                throw new Error('Invalid file type: ' + fileType);
+            }
+            numrecs = 0;
+            for (i = 0; i < dims.length; i++) {
+                if (dims[i].unlimited) {
+                    numrecs = dims[i].getCurrentSize();
+                }
+            }
+            buffer.write(numberType, numrecs);
+            for (i = 0; i < dims.length; i++) {
+                dims[i].write(buffer);
+            }
+            gVar.writeAttributesHeader(buffer);
+            offset = nbytes;
+            for (i = 0; i < vars.length; i++) { // loop through non-record variables
+                if (!vars[i].unlimited) {
+                    vars[i].writeHeader(buffer);
+                    if (offsetSize === 64) {
+                        buffer.write(numberType, 0);
+                    }
+                    buffer.write(numberType, offset);
+                    offset += vars[i].vsize();
+                    if (offset > 0x7FFFFFFF) { // for now only supporting 32 bit signed offset even for 64 bit files
+                        throw new Error('Offset too large for this netcdf implementation, sorry.');
+                    }
+                }
+            }
+            for (i = 0; i < vars.length; i++) { // loop through record variables
+                if (vars[i].unlimited) {
+                    vars[i].writeHeader(buffer);
+                    if (offsetSize === 64) {
+                        buffer.write(numberType, 0);
+                    }
+                    buffer.write(numberType, offset);
+                    offset += vars[i].vsize();
+                    if (offset > 0x7FFFFFFF) { // for now only supporting 32 bit signed offset even for 64 bit files
+                        throw new Error('Offset too large for this netcdf implementation, sorry.');
+                    }
+                }
+            }
+            defineMode = false;
         }
         
         if (readWrite === undefined) { readWrite = 'w'; }
