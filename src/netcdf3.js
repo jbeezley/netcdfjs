@@ -28,10 +28,12 @@ define(function (require) {
             var i;
             var n = 4; // magic + version
             n += numberType.size; // numrecs
+            n += numberType.size * 2; // dimension length
             for (i = 0; i < dims.length; i++) { // dimensions
                 n += dims[i].writeSize();
             }
             n += gVar.writeAttributesHeaderSize(); // global attributes
+            n += numberType.size * 2; // variable length
             for (i = 0; i < vars.length; i++) { // variables
                 n += vars[i].writeHeaderSize();
                 n += offsetSize; // offsets handled by the file class
@@ -118,10 +120,24 @@ define(function (require) {
                 }
             }
             buffer.write(numberType, numrecs);
+            if (dims.length > 0) {
+                buffer.write(numberType, ncDefs.NC_DIMENSION);
+            } else {
+                buffer.write(numberType, ncDefs.NC_ABSENT);
+            }
+            buffer.write(numberType, dims.length);
             for (i = 0; i < dims.length; i++) {
                 dims[i].write(buffer);
             }
             gVar.writeAttributesHeader(buffer);
+
+            if (vars.length > 0) {
+                buffer.write(numberType, ncDefs.NC_VARIABLE);
+            } else {
+                buffer.write(numberType, ncDefs.NC_ABSENT);
+            }
+            buffer.write(numberType, vars.length);
+
             offset = nbytes;
             for (i = 0; i < vars.length; i++) { // loop through non-record variables
                 if (!vars[i].unlimited) {
@@ -224,10 +240,14 @@ define(function (require) {
             str.push('}');
             return str.join('');
         };
+        this.getBuffer = function () {
+            return buffer;
+        };
         this.close = function () {
             if (defineMode) {
                 writeHeader();
             }
+            return this.getBuffer();
         };
         Object.freeze(this);
     }

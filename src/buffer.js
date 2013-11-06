@@ -11,11 +11,18 @@ define(function () {
         this.tell = function () { return index; };
         this.seek = function (newIndex) { index = newIndex; };
         this.read = function (type, count) {
-            return type.read(index, buffer, count);
+            var val = type.read(index, buffer, count);
+            if (count > 1) {
+                index += count * type.size;
+            } else {
+                index += type.size;
+            }
+            return val;
         };
         this.write = function (type, value) {
-            type.write(index, buffer, value);
+            index += type.write(index, buffer, value);
         };
+        this.length = buffer.byteLength;
     }
 
     return Buffer;

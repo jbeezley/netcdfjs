@@ -83,7 +83,7 @@ define(function (require) {
             if (that.unlimited) {
                 shape = shape.slice(1,dimensions.length);
             }
-            return shape.reduce(function (a,b) {return a*b;}, 1);
+            return type.size * shape.reduce(function (a,b) {return a*b;}, 1);
         };
         this.attributes = function () {
             return getObjectFromArray(attributes);
