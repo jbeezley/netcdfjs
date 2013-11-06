@@ -129,7 +129,7 @@ define(function (require) {
     Variable.readHeader = function (buffer, dimensions) {
         var name = readArray(buffer, types.char),
             ndims = buffer.read(numberType),
-            i, dims, attrs, type, vsize, v;
+            i, dims = [], attrs, type, vsize, v;
         for (i = 0; i < ndims; i++) {
             dims.push(dimensions[buffer.read(numberType)]);
         }
@@ -146,6 +146,9 @@ define(function (require) {
         var i, attrs = [],
             attrSent = buffer.read(numberType),
             nattrs = buffer.read(numberType);
+        if (attrSent !== ncDefs.NC_ABSENT && attrSent !== ncDefs.NC_ATTRIBUTE) {
+            throw new Error('Invalid attribute in header');
+        }
         if (attrSent === ncDefs.NC_ABSENT) { nattrs = 0; }
         for (i = 0; i < nattrs; i++) {
             attrs.push(Attribute.read(buffer));

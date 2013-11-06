@@ -64,7 +64,7 @@ define(function (require) {
             numrecs = buffer.read(numberType);
             value = buffer.read(numberType);
             ndims = buffer.read(numberType);
-            if (value !== ncDefs.NC_DIMENSION || value !== ncDefs.NC_ABSENT) {
+            if (value !== ncDefs.NC_DIMENSION && value !== ncDefs.NC_ABSENT) {
                 throw new Error('Invalid netcdf file: no dimensions found');
             }
             for (i = 0; i < ndims; i++) {
@@ -76,7 +76,7 @@ define(function (require) {
             }
             value = buffer.read(numberType);
             nvars = buffer.read(numberType);
-            if (value !== ncDefs.NC_VARIABLE || value !== ncDefs.NC_ABSENT) {
+            if (value !== ncDefs.NC_VARIABLE && value !== ncDefs.NC_ABSENT) {
                 throw new Error('Invalid netcdf file: no variables found');
             }
             for (i = 0; i < nvars; i++) {
@@ -87,9 +87,9 @@ define(function (require) {
                     if (value !== 0) {
                         throw new Error('Unsupported offset in 64 bit file');
                     }
-                    offsets[i] = buffer.read(numberType);
-                    if (v.unlimited) { recsize += v.vsize(); }
                 }
+                offsets[i] = buffer.read(numberType);
+                if (v.unlimited) { recsize += v.vsize(); }
             }
 
             defineMode = false;
