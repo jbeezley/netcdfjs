@@ -56,7 +56,12 @@ describe('NcFile', function () {
         b = readFile('test.nc');
         f = new NcFile(b, 'r');
         f.toString().should.equal(s);
-        //console.log(JSON.stringify(f.toObject()));
+        //console.log(JSON.stringify(f.toObject(), undefined, '  '));
+        var obj = f.toObject();
+        var g = NcFile.fromObject(obj);
+        g.toString().should.equal(f.toString());
+        g.toObject().should.eql(f.toObject());
+        //console.log(g.toString());
         done();
     });
     it('Construct empty file', function (done) {

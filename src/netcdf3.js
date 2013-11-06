@@ -243,6 +243,15 @@ define(function (require) {
         this.getBuffer = function () {
             return buffer;
         };
+        this.numrecs = function () {
+            var i;
+            for (i = 0; i < dims.length; i++) {
+                if (dims[i].unlimited) {
+                    return dims[i].getCurrentSize();
+                }
+            }
+            return 0;
+        };
         this.toObject = function () {
             var obj = {}, i;
             function attrJSON(alist) {
@@ -264,6 +273,8 @@ define(function (require) {
                 }
                 return d;
             }
+            obj.fileType = fileType;
+            //obj.numrecs = this.numrecs();
             obj.dimensions = {};
             obj.variables = {};
             obj.attributes = {};
@@ -288,6 +299,40 @@ define(function (require) {
         };
         Object.freeze(this);
     }
+
+    NcFile.fromObject = function (obj) {
+        var key, f, fileType, attr, v;
+        function addAttributes(obj, forv) {
+            var key;
+            if (obj.hasOwnProperty('attributes')) {
+                for (key in obj.attributes) {
+                    if (obj.attributes.hasOwnProperty(key)) {
+                        attr = forv.createAttribute(key, obj.attributes[key].type);
+                        attr.setValue(obj.attributes[key].value);
+                    }
+                }
+            }
+        }
+        if (obj.hasOwnProperty('fileType')) { fileType = obj.fileType; }
+        f = new NcFile(undefined, 'w', fileType);
+        if (obj.hasOwnProperty('dimensions')) {
+            for (key in obj.dimensions) {
+                if (obj.dimensions.hasOwnProperty(key)) {
+                    f.createDimension(key, obj.dimensions[key]);
+                }
+            }
+        }
+        addAttributes(obj, f);
+        if (obj.hasOwnProperty('variables')) {
+            for (key in obj.variables) {
+                if (obj.variables.hasOwnProperty(key)) {
+                    v = f.createVariable(key, obj.variables[key].type, obj.variables[key].dimensions);
+                    addAttributes(obj.variables[key], v);
+                }
+            }
+        }
+        return f;
+    };
 
     return NcFile;
 });
