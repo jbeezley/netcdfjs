@@ -24,6 +24,16 @@ define(function (require) {
         buffer.seek(buffer.tell() + n);
     }
 
+    function getObjectFromArray (A) {
+        var obj = {}, i;
+        for (i = 0; i < A.length; i++) {
+            if(A[i] !== undefined) {
+                obj[A[i].name] = A[i];
+            }
+        }
+        return obj;
+    }
+
     return {
         NC_ABSENT : 0,
         NC_DIMENSION : 10,
@@ -60,15 +70,7 @@ define(function (require) {
             }
             return undefined;
         },
-        getObjectFromArray: function (A) {
-            var obj = {}, i;
-            for (i = 0; i < A.length; i++) {
-                if(A[i] !== undefined) {
-                    obj[A[i].name] = A[i];
-                }
-            }
-            return obj;
-        },
+        getObjectFromArray: getObjectFromArray,
         writeArray: function (buffer, type, arr) {
             buffer.write(types.int32, arr.length);
             buffer.write(type, arr);

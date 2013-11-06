@@ -24,7 +24,7 @@ define(function (require) {
         if (dimensions === undefined) { dimensions = []; }
         this.name = name;
         this.type = type;
-        this.dimensions = dimensions;
+        this.dimensions = function () { return dimensions; };
         this.getAttribute = function (name) {
             return getByName(attributes, name);
         };

@@ -243,6 +243,43 @@ define(function (require) {
         this.getBuffer = function () {
             return buffer;
         };
+        this.toObject = function () {
+            var obj = {}, i;
+            function attrJSON(alist) {
+                var i, attrs = {};
+                for (i in alist) {
+                    if (alist.hasOwnProperty(i)) {
+                        attrs[alist[i].name] = {
+                            type: alist[i].type.toString(),
+                            value: alist[i].getValue()
+                        };
+                    }
+                }
+                return attrs;
+            }
+            function dimNames(dlist) {
+                var i, d = [];
+                for (i = 0; i < dlist.length; i++) {
+                    d.push(dlist[i].name);
+                }
+                return d;
+            }
+            obj.dimensions = {};
+            obj.variables = {};
+            obj.attributes = {};
+            for (i = 0; i < dims.length; i++) {
+                obj.dimensions[dims[i].name] = dims[i].size;
+            }
+            obj.attributes = attrJSON(gVar.attributes());
+            for (i = 0; i < vars.length; i++) {
+                obj.variables[vars[i].name] = {
+                    dimensions: dimNames(vars[i].dimensions()),
+                    type: vars[i].type.toString(),
+                    attributes: attrJSON(vars[i].attributes())
+                };
+            }
+            return obj;
+        };
         this.close = function () {
             if (defineMode) {
                 writeHeader();
