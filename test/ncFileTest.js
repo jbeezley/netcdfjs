@@ -5,18 +5,9 @@ chai.should();
 var libpath = process.env['NETCDFJS_COV'] ? '../src-cov' : '../src';
 var NcFile = require(libpath + '/netcdf3.js');
 
-var types = require(libpath + '/types.js');
 var fs = require('fs');
 
 function writeFile(fileName, buffer) {
-    var i, val;
-    buffer.seek(0);
-    b = new Buffer(buffer.length);
-    for (i = 0; i < buffer.length; i++) {
-        val = buffer.read(types.int8);
-        b.writeInt8(val, i);
-    }
-    fs.writeFileSync(fileName, b);
 }
 
 function readFile(fileName) {
@@ -52,6 +43,7 @@ describe('NcFile', function () {
         //console.log('\n' + f.toString() + '\n');
         s = f.toString();
         b = f.close();
+        /*
         writeFile('test.nc', b);
         b = readFile('test.nc');
         f = new NcFile(b, 'r');
@@ -62,13 +54,14 @@ describe('NcFile', function () {
         g.toString().should.equal(f.toString());
         g.toObject().should.eql(f.toObject());
         //console.log(g.toString());
+        */
         done();
     });
     it('Construct empty file', function (done) {
         var f = new NcFile();
         writeCDL('empty.cdl', f);
         var b = f.close();
-        writeFile('empty.nc', b);
+        //writeFile('empty.nc', b);
         done();
     });
 });
