@@ -137,6 +137,8 @@
                     val = buffer['get' + dataViewType](index);
                     if (string) {
                         val = String.fromCharCode(val);
+                    } else if (decimal && typeSize === 4) {
+                        val = Number(val.toPrecision(7));
                     }
                 } else {
                     val = [];
