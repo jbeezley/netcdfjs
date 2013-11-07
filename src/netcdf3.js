@@ -26,7 +26,7 @@
                 this.read = function () {
                     var i, nodeBuffer = fs.readFileSync(fileName),
                         n = nodeBuffer.length,
-                        buffer = new DataView(new ArrayBuffer());
+                        buffer = new DataView(new ArrayBuffer(n));
                     for (i = 0; i < n; i++) {
                         buffer.setUint8(i, nodeBuffer[i]);
                     }

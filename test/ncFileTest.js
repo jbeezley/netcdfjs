@@ -28,7 +28,7 @@ function writeCDL(fileName, f) {
 
 describe('NcFile', function () {
     it('Construct simple file', function (done) {
-        var f = new NcFile('simple.nc');
+        var f = new NcFile('simple.nc'), g;
         var v, a, b, s;
         f.createDimension('nx', 10);
         f.createDimension('ny', 15);
@@ -40,28 +40,20 @@ describe('NcFile', function () {
         a = f.createAttribute('attrStr', 'char');
         a.setValue('I am an attribute');
         writeCDL('test.cdl', f);
-        //console.log('\n' + f.toString() + '\n');
         s = f.toString();
         b = f.close();
-        /*
-        writeFile('test.nc', b);
-        b = readFile('test.nc');
-        f = new NcFile(b, 'r');
-        f.toString().should.equal(s);
-        //console.log(JSON.stringify(f.toObject(), undefined, '  '));
-        var obj = f.toObject();
-        var g = NcFile.fromObject(obj);
+
+        g = new NcFile('simple.nc', 'r');
         g.toString().should.equal(f.toString());
-        g.toObject().should.eql(f.toObject());
-        //console.log(g.toString());
-        */
+        
         done();
     });
     it('Construct empty file', function (done) {
-        var f = new NcFile('empty.nc');
+        var f = new NcFile('empty.nc'), g;
         writeCDL('empty.cdl', f);
         var b = f.close();
-        //writeFile('empty.nc', b);
+        g = new NcFile('empty.nc');
+        g.toString().should.equal(f.toString());
         done();
     });
 });
