@@ -17,6 +17,35 @@
     }
 }(this, function () {
     'use strict';
+    
+    function fileClass() {
+        var fs = require('fs');
+        function File(fileName, readWrite) {
+            this.fileName = fileName;
+            if (readWrite === 'r') {
+                this.read = function () {
+                    var i, nodeBuffer = fs.readFileSync(fileName),
+                        n = nodeBuffer.length,
+                        buffer = new DataView(new ArrayBuffer());
+                    for (i = 0; i < n; i++) {
+                        buffer.setUint8(i, nodeBuffer[i]);
+                    }
+                    return buffer;
+                };
+            } else if (readWrite === 'w') {
+                this.write = function (buffer) {
+                    var n = buffer.byteLength, i,
+                        nodeBuffer = new NodeBuffer(n);
+                    for (i = 0; i < n; i++) {
+                        nodeBuffer[i] = buffer.getUint8(i);
+                    }
+                    fs.writeFileSync(fileName, nodeBuffer);
+                };
+            }
+            Object.freeze(this);
+        }
+        return File;
+    }
 
     function bufferClass() {
     
@@ -37,6 +66,7 @@
                 index += type.write(index, buffer, value);
             };
             this.length = buffer.byteLength;
+            this.dataView = buffer;
         }
     
         return Buffer;
@@ -540,13 +570,13 @@
         return Variable;
     }
     
-    function ncFileClass(ncDefs, types, Buffer, Dimension, Variable) {
+    function ncFileClass(File, ncDefs, types, Buffer, Dimension, Variable) {
     
         var getByName = ncDefs.getByName;
         var getObjectFromArray = ncDefs.getObjectFromArray;
         var numberType = ncDefs.numberType;
         
-        function NcFile(buffer, readWrite, fileType) {
+        function NcFile(fileName, readWrite, fileType) {
             var vars = [];
             var dims = [];
             var gVar = new Variable('', types.char);
@@ -554,6 +584,7 @@
             var defineMode = true;
             var offsets = [];
             var recsize = 0;
+            var buffer, file;
             
             function headerSize() {
                 var i;
@@ -700,12 +731,14 @@
                     }
                 }
                 defineMode = false;
+                file.write(buffer.dataView);
             }
             
             if (readWrite === undefined) { readWrite = 'w'; }
             if (fileType === undefined) { fileType = 'NETCDF_CLASSIC'; }
             if (fileType === 'NETCDF_64BITOFFSET') { offsetSize = 64; }
             
+            file = new File(fileName, readWrite);
             this.readWrite = readWrite;
             this.fileType = fileType;
     
@@ -740,7 +773,7 @@
                     return v;
                 };
             } else if (readWrite === 'r') {
-                buffer = new Buffer(buffer);
+                buffer = new Buffer(file.read());
                 readHeader();
             } else {
                 throw new Error('Invalid readWrite flag: ' + readWrite);
@@ -868,12 +901,14 @@
     
         return NcFile;
     }
-    var Buffer = bufferClass(),
+    var NodeBuffer = Buffer;
+    var File = fileClass(),
+        BufferWrap = bufferClass(),
         types = typesClass(),
         ncDefs = ncDefsClass(types),
         Dimension = dimensionClass(ncDefs, types),
         Attribute = attributeClass(ncDefs, types),
         Variable = variableClass(ncDefs, types, Attribute),
-        NcFile = ncFileClass(ncDefs, types, Buffer, Dimension, Variable);
+        NcFile = ncFileClass(File, ncDefs, types, BufferWrap, Dimension, Variable);
     return NcFile;
 }));

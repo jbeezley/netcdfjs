@@ -28,7 +28,7 @@ function writeCDL(fileName, f) {
 
 describe('NcFile', function () {
     it('Construct simple file', function (done) {
-        var f = new NcFile();
+        var f = new NcFile('simple.nc');
         var v, a, b, s;
         f.createDimension('nx', 10);
         f.createDimension('ny', 15);
@@ -58,7 +58,7 @@ describe('NcFile', function () {
         done();
     });
     it('Construct empty file', function (done) {
-        var f = new NcFile();
+        var f = new NcFile('empty.nc');
         writeCDL('empty.cdl', f);
         var b = f.close();
         //writeFile('empty.nc', b);
