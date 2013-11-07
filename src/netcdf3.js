@@ -259,6 +259,7 @@
             },
             readArray: function (buffer, type) {
                 var n = buffer.read(types.int32), value;
+                if (n === 0) { return []; }
                 value = buffer.read(type, n);
                 padSkip(buffer);
                 return value;
@@ -365,7 +366,7 @@
                     values = [];
                     i = 0;
                 }
-                if (value.hasOwnProperty("length") && value.length !== 1) {
+                if ( Array.isArray(value) || ( typeof(value) === 'string' && value.length !== 1 )) {
                     values = [];
                     for (j = 0; j < value.length; j++) {
                         this.setValue(value[j], j);
@@ -373,7 +374,7 @@
                     return;
                 }
                 if (!type.validate(value)) {
-                    throw new Error("Invalid value for type " + type.toString());
+                    throw new Error("Invalid value for type " + type.toString() + " value: " + value);
                 }
                 if ( typeof(i) !== "number" || i < 0 || Number(i.toFixed(0)) !== i ) {
                     throw new Error("Invalid index");
@@ -786,7 +787,7 @@
             this.dimensions = function () {
                 return getObjectFromArray(dims);
             };
-            this.toString = function (fileName) {
+            this.toString = function () {
                 var str = [], i;
                 if (fileName === undefined) { fileName = 'file'; }
                 str.push('netcdf ' + fileName + ' {\n');
@@ -865,7 +866,7 @@
             Object.freeze(this);
         }
     
-        NcFile.fromObject = function (obj) {
+        NcFile.fromObject = function (fileName, obj) {
             var key, f, fileType, attr, v;
             function addAttributes(obj, forv) {
                 var key;
@@ -879,7 +880,7 @@
                 }
             }
             if (obj.hasOwnProperty('fileType')) { fileType = obj.fileType; }
-            f = new NcFile(undefined, 'w', fileType);
+            f = new NcFile(fileName, 'w', fileType);
             if (obj.hasOwnProperty('dimensions')) {
                 for (key in obj.dimensions) {
                     if (obj.dimensions.hasOwnProperty(key)) {
