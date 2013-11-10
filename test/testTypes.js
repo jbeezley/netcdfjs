@@ -80,6 +80,10 @@ describe('types', function () {
             testReadWrite(type, values[i]);
         }
         testReadWrite(type, values);
+        it('toString()', function (done) {
+            type.toString().should.equal('int8');
+            done();
+        });
     });
     describe('int16', function () {
         var type = types.int16,
@@ -88,6 +92,10 @@ describe('types', function () {
             testReadWrite(type, values[i]);
         }
         testReadWrite(type, values);
+        it('toString()', function (done) {
+            type.toString().should.equal('int16');
+            done();
+        });
     });
     describe('int32', function () {
         var type = types.int32,
@@ -96,6 +104,10 @@ describe('types', function () {
             testReadWrite(type, values[i]);
         }
         testReadWrite(type, values);
+        it('toString()', function (done) {
+            type.toString().should.equal('int32');
+            done();
+        });
     });
     describe('int64', function () {
         var type = types.int64,
@@ -107,6 +119,10 @@ describe('types', function () {
             }
         }
         testReadWrite(type, p);
+        it('toString()', function (done) {
+            type.toString().should.equal('int64');
+            done();
+        });
     });
     describe('float32', function () {
         var eps = 10e-8;
@@ -116,6 +132,10 @@ describe('types', function () {
             testReadWrite(type, values[i], eps);
         }
         testReadWrite(type, values, eps);
+        it('toString()', function (done) {
+            type.toString().should.equal('float32');
+            done();
+        });
     });
     describe('float64', function () {
         var type = types.float64,
@@ -124,6 +144,10 @@ describe('types', function () {
             testReadWrite(type, values[i]);
         }
         testReadWrite(type, values);
+        it('toString()', function (done) {
+            type.toString().should.equal('float64');
+            done();
+        });
     });
     describe('string', function () {
         var type = types.string,
@@ -132,7 +156,9 @@ describe('types', function () {
             testReadWrite(type, values[i]);
         }
         testReadWrite(type, values.join(':'));
-    });
-    describe('toString/fromString', function () {
+        it('toString()', function (done) {
+            type.toString().should.equal('string');
+            done();
+        });
     });
 });
