@@ -4,6 +4,34 @@ chai.should();
 var libpath = process.env['NETCDFJS_COV'] ? '../src-cov' : '../src';
 var types = require(libpath + '/types.js');
 
+function meta(foo, arg1, arg2, arg3, arg4) {
+    return function () {
+        foo(arg1, arg2, arg3, arg4);
+    };
+}
+
+function invalidToString(type, values) {
+    it('Invalid toString', function (done) {
+        var all = [Number.NaN, Number.NEGATIVE_INFINITY,
+                   Number.POSITIVE_INFINITY, function () {},
+                   {}, /\./].concat(values);
+        all.forEach(function (val) {
+            meta(type.toString, val).should.throw(Error, 'Invalid');
+        });
+        done();
+    });
+    it('Invalid writeData', function (done) {
+        var all = [Number.NaN, Number.NEGATIVE_INFINITY,
+                   Number.POSITIVE_INFINITY, function () {},
+                   {}, /\./].concat(values);
+        var view = new DataView(new ArrayBuffer(128));
+        all.forEach(function (val) {
+            meta(type.write, 0, view, val).should.throw(Error, 'Invalid');
+        });
+        done();
+    });
+};
+
 function testReadWrite(type, value, eps) {
     var title = 'read/write value: ';
     //if (Array.isArray(value)) {
@@ -68,7 +96,7 @@ describe('types', function () {
     var int8values    = [1, 0, -1, 0x7F, -0x80],
         int16values   = [0x7FFF, -0x8000].concat(int8values),
         int32values   = [0x7FFFFFFF, -0x80000000].concat(int16values),
-        int64values   = [Math.pow(3, 30), Math.pow(2, 52)].concat(int32values),
+        int64values   = [0xFFFFFFFF, Math.pow(3, 30), Math.pow(2, 52)].concat(int32values),
         float32values = [Math.atan(1) * 4, Math.exp(61), -Math.exp(-32), -Math.exp(59)].concat(int64values),
         float64values = [Math.pow(2, 512), -Math.pow(3, 400), Math.pow(5, -400), -Math.pow(3, -400)].concat(float32values),
         stringvalues  = ['a', 'abcdefghijklmnopqrstuvwxyz', 'This is a string!', '\xCC\x00\x01\x02\xFF\x7F\xFE'];
@@ -84,6 +112,11 @@ describe('types', function () {
             type.toString().should.equal('int8');
             done();
         });
+        it('CDL type', function (done) {
+            types.fromCDL(type.cdlType).should.equal(type);
+            done();
+        });
+        invalidToString(type, [128, -129, 1.5, -2.1]);
     });
     describe('int16', function () {
         var type = types.int16,
@@ -96,6 +129,11 @@ describe('types', function () {
             type.toString().should.equal('int16');
             done();
         });
+        it('CDL type', function (done) {
+            types.fromCDL(type.cdlType).should.equal(type);
+            done();
+        });
+        invalidToString(type, [0xFFFF, -0xFFFF - 1, 1.2, -3.1]);
     });
     describe('int32', function () {
         var type = types.int32,
@@ -108,6 +146,11 @@ describe('types', function () {
             type.toString().should.equal('int32');
             done();
         });
+        it('CDL type', function (done) {
+            types.fromCDL(type.cdlType).should.equal(type);
+            done();
+        });
+        invalidToString(type, [0xFFFFFFFF, -0xFFFFFFFF - 1, 1.2, -5.1]);
     });
     describe('int64', function () {
         var type = types.int64,
@@ -123,6 +166,11 @@ describe('types', function () {
             type.toString().should.equal('int64');
             done();
         });
+        it('CDL type', function (done) {
+            types.fromCDL(type.cdlType).should.equal(type);
+            done();
+        });
+        invalidToString(type, [1.1, -0.5, Math.pow(2, 60)]);
     });
     describe('float32', function () {
         var eps = 10e-8;
@@ -136,6 +184,11 @@ describe('types', function () {
             type.toString().should.equal('float32');
             done();
         });
+        it('CDL type', function (done) {
+            types.fromCDL(type.cdlType).should.equal(type);
+            done();
+        });
+        invalidToString(type, []);
     });
     describe('float64', function () {
         var type = types.float64,
@@ -148,6 +201,11 @@ describe('types', function () {
             type.toString().should.equal('float64');
             done();
         });
+        it('CDL type', function (done) {
+            types.fromCDL(type.cdlType).should.equal(type);
+            done();
+        });
+        invalidToString(type, []);
     });
     describe('string', function () {
         var type = types.string,
@@ -158,6 +216,28 @@ describe('types', function () {
         testReadWrite(type, values.join(':'));
         it('toString()', function (done) {
             type.toString().should.equal('string');
+            done();
+        });
+        it('CDL type', function (done) {
+            types.fromCDL(type.cdlType).should.equal(type);
+            done();
+        });
+        invalidToString(type, [1, 1.1]);
+    });
+    describe('Error conditions for types', function () {
+        it('Invalid CDL type', function (done) {
+            meta(types.fromCDL, 'notatype').should.throw(Error);
+            done();
+        });
+        it('Invalid fromString', function (done) {
+            meta(types.fromString, 'abc').should.throw(Error);
+            meta(types.fromString, '.1.2').should.throw(Error);
+            meta(types.fromString, '1.2l').should.throw(Error);
+            meta(types.fromString, '1.2e12s').should.throw(Error);
+            meta(types.fromString, '"ab').should.throw(Error);
+            meta(types.fromString, '"a"b').should.throw(Error);
+            meta(types.fromString, '128b').should.throw(Error);
+            meta(types.fromString, '-129b').should.throw(Error);
             done();
         });
     });

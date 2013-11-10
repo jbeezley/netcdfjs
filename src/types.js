@@ -24,7 +24,8 @@
 
     function TypeDef () {}
     TypeDef.prototype = {
-        validation: [function (value) { return value !== undefined; }],
+        validation: [function (value) { return value !== undefined; },
+                     function (value) { return value !== null; }],
         format: function (value) {
             return value.toString();
         },
@@ -94,6 +95,8 @@
     NumberType.prototype = Object.create(TypeDef.prototype);
     NumberType.prototype.validation = TypeDef.prototype.validation.slice();
     NumberType.prototype.validation.push(function (value) { return typeof(value) === 'number'; });
+    NumberType.prototype.validation.push(function (value) { return Number.isFinite(value); });
+    NumberType.prototype.validation.push(function (value) { return !Number.isNaN(value); });
     
     function SignedIntType (nBytes, fmtChar) {
         var maxValue =  Math.pow(2, nBytes * 8 - 1) - 1,
@@ -173,8 +176,9 @@
     var float32Obj = new FloatType(4, 'f');
     var float64Obj = new FloatType(8, '');
     
-    function DataType (typeStr, typeObj) {
+    function DataType (typeStr, typeObj, cdlType) {
         var that = this;
+        this.cdlType = cdlType;
         this.toString = function (value) {
             var i, s = [];
             if (value === undefined) {
@@ -212,13 +216,13 @@
 
 
     var types = {
-        string: new DataType('string', new StringType()),
-        int8:  new DataType('int8',  new SignedIntType(1, 'b')),
-        int16: new DataType('int16', new SignedIntType(2, 's')),
-        int32: new DataType('int32', new SignedIntType(4, '')),
-        int64: new DataType('int64', int64Obj),
-        float32: new DataType('float32', float32Obj),
-        float64: new DataType('float64', float64Obj)
+        string: new DataType('string', new StringType(), 'char'),
+        int8:  new DataType('int8',  new SignedIntType(1, 'b'), 'byte'),
+        int16: new DataType('int16', new SignedIntType(2, 's'), 'short'),
+        int32: new DataType('int32', new SignedIntType(4, ''), 'int'),
+        int64: new DataType('int64', int64Obj, 'long'),
+        float32: new DataType('float32', float32Obj, 'float'),
+        float64: new DataType('float64', float64Obj, 'double')
     };
     Object.defineProperty(types, 'fromString', { value: function (s) {
         var t = s.trim(), n = t.length, out = {}, l = t[n-1], m = t.slice(0, n-1);
@@ -252,6 +256,18 @@
             throw new Error("Could not convert value from string: " + s);
         }
         return out;
+    }});
+    Object.defineProperty(types, 'fromCDL', { value: function (s) {
+        var type, name;
+        for (name in this) {
+            if (this.hasOwnProperty(name)) {
+                type = this[name];
+                if(type.cdlType === s) {
+                    return type;
+                }
+            }
+        }
+        throw new Error("Invalid CDL data type");
     }});
     Object.freeze(types);
 
