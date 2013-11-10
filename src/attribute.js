@@ -24,6 +24,8 @@
         var values = [], type = types[typeName], that = this;
         if (type === undefined) {
             throw new Error("Invalid type: " + typeName);
+        } else if (typeName === 'string') {
+            values = '';
         }
         dP(this, 'set', { value: function (val, index) {
             var i;
@@ -41,6 +43,8 @@
                 } else {
                     values = [val];
                 }
+            } else if (typeName === 'string') {
+                values = val;
             } else {
                 values[index] = val;
             }
