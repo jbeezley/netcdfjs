@@ -2,8 +2,7 @@
 var chai = require('chai');
 chai.should();
 
-var libpath = process.env['NETCDFJS_COV'] ? '../src-cov' : '../src';
-var NcFile = require(libpath + '/netcdf3.js');
+var NcFile = require('netcdf3');
 
 var fs = require('fs');
 

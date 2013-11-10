@@ -1,8 +1,7 @@
 var chai = require('chai');
 chai.should();
 
-var libpath = process.env['NETCDFJS_COV'] ? '../src-cov' : '../src';
-var types = require(libpath + '/types.js');
+var types = require('types');
 
 function meta(foo, arg1, arg2, arg3, arg4) {
     return function () {
