@@ -54,6 +54,14 @@ function testReadWrite(type, value, eps) {
         }
         done();
     });
+    if (!Array.isArray(value)) {
+        it('toString/fromString ' + type.toString(value), function (done) {
+            var s = type.toString(value), o = types.fromString(s);
+            o.type.should.equal(type);
+            o.value.should.equal(value);
+            done();
+        });
+    }
 }
 
 describe('types', function () {
@@ -124,5 +132,7 @@ describe('types', function () {
             testReadWrite(type, values[i]);
         }
         testReadWrite(type, values.join(':'));
+    });
+    describe('toString/fromString', function () {
     });
 });

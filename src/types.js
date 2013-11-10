@@ -134,6 +134,13 @@
         view[setMethod + 'Float' + (this.typeSize * 8).toString()](index, value);
         return this.typeSize;
     };
+    FloatType.prototype.format = function (value) {
+        if (Math.floor(value) === value) {
+            return value.toFixed(1);
+        } else {
+            return value.toString();
+        }
+    };
     
     var int64Obj = new SignedIntType(8, 'l');
     int64Obj.readValue = function (index, view) {
@@ -199,6 +206,7 @@
             numberObj.writeValue(index, view, value.length);
             return numberObj.typeSize + typeObj.writeData(index + numberObj.typeSize, view, value);
         };
+        this.validate = function (value) { return typeObj.validate.call(typeObj, value); };
         Object.freeze(this);
     }
 
@@ -212,6 +220,39 @@
         float32: new DataType('float32', float32Obj),
         float64: new DataType('float64', float64Obj)
     };
+    Object.defineProperty(types, 'fromString', { value: function (s) {
+        var t = s.trim(), n = t.length, out = {}, l = t[n-1], m = t.slice(0, n-1);
+        if (t[0] === '"' && l === '"') {
+            out.type = types.string;
+            out.value = t.slice(1, n - 1);
+        } else if (l === 'b') {
+            out.type = types.int8;
+            out.value = Number(m);
+        } else if (l === 's') {
+            out.type = types.int16;
+            out.value = Number(m);
+        } else if (l === 'f') {
+            out.type = types.float32;
+            out.value = Number(m);
+        } else if (l === 'l') {
+            out.type = types.int64;
+            out.value = Number(m);
+        } else {
+            m = Number(t);
+            out.value = m;
+            if (t.search(/\./) === -1 && t.search(/e/) === -1)  {
+                out.type = types.int32;
+                out.value = m;
+            } else {
+                out.type = types.float64;
+                out.value = m;
+            }
+        }
+        if (Number.isNaN(out.value) || out.type === undefined || !out.type.validate(out.value)) {
+            throw new Error("Could not convert value from string: " + s);
+        }
+        return out;
+    }});
     Object.freeze(types);
 
     return types;
