@@ -5,20 +5,20 @@
 
     if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['types'], factory);
+        define(['common', 'types'], factory);
     } else if (typeof exports === 'object') {
         // Node. Does not work with strict CommonJS, but
         // only CommonJS-like enviroments that support module.exports,
         // like Node.
-        module.exports = factory(require('types'));
+        module.exports = factory(require('common'), require('types'));
     } else {
         // Browser globals (root is window)
-        root.returnExports = factory(root.types);
+        root.returnExports = factory(root.common, root.types);
     }
-}(this, function (types) {
+}(this, function (common, types) {
     'use strict';
     
-    var dP = Object.defineProperty;
+    var dP = common.dP;
 
     function Attribute(typeName) {
         var values = [], type = types[typeName], that = this;
@@ -59,6 +59,9 @@
         }});
         dP(this, 'length', { get: function () {
             return values.length;
+        }});
+        dP(this, 'toString', { value: function () {
+            return type.toString(values);
         }});
         Object.freeze(this);
     }
