@@ -60,7 +60,8 @@
             return a;
         }});
         dP(this, 'unlimited', { get: function () {
-            return that.dimensions[0].unlimited;
+            var d = that.dimensions;
+            return d.length > 0 && d[0].unlimited;
 
         }});
         dP(this, 'nDims', { get: function () {
