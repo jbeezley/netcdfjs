@@ -43,10 +43,11 @@
             return common.getObj(anames, attrs);
         }});
         dP(this, 'dimensions', { get: function () {
-            var dims = {}, i;
+            var dims = [], i;
             for (i = 0; i < that.nDims; i++) {
-                dims[dnames[i]] = getDim(dnames[i]);
+                dims[i] = getDim(dnames[i]);
             }
+            return dims;
         }});
         dP(this, 'createAttribute', { value: function (name, type) {
             var a;
@@ -68,7 +69,7 @@
         dP(this, 'shape', { get: function () {
             var shp = [], i, dims = that.dimensions;
             for (i = 0; i < that.nDims; i++) {
-                shp.push(dims[i].length);
+                shp.push(dims[i].size);
             }
             if (that.unlimited) { shp[0] = getNRecs(); }
             return shp;
@@ -92,7 +93,8 @@
             };
         }});
         dP(this, 'toString', { value: function () {
-            return that.toStringObj().join(' ');
+            var obj = that.toStringObj();
+            return obj.type + ' ' + obj.dims;
         }});
     }
 

@@ -8,6 +8,11 @@ var types = require('types');
 function test(type, values) {
     it('values: ' + values.slice(0, 10), function (done) {
         var attr = new Attribute(type);
+        if (type === 'string') {
+            attr.toString().should.equal('""');
+        } else {
+            attr.toString().should.equal('');
+        }
         if (values.length > 1) {
             attr.set(values[0]);
             attr.set(values[0], 1);
@@ -18,6 +23,7 @@ function test(type, values) {
         if (values.length > 0) {
             attr.get(0).should.equal(values[0]);
         }
+        attr.toString().should.be.a('string');
         done();
     });
 }
