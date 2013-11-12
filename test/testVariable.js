@@ -21,19 +21,10 @@ describe('Variable', function () {
             return d3;
         }
     }
-    function getDimid(d) {
-        if (d === 'd1') {
-            return 0;
-        } else if (d === 'd2') {
-            return 1;
-        } else if (d === 'd3') {
-            return 2;
-        }
-    }
     function createVariable(type, dims) {
-        return new Variable(type, dims, getDimid, getDim, nrecs);
+        return new Variable(type, dims, getDim, nrecs);
     }
-    function testVariable(type, dims, shp, dobj) {
+    function testVariable(type, dims, shp) {
         describe(type + '(' + dims.join(', ') + ')', function () {
             var v = createVariable(type, dims);
             it('toString', function (done) {
@@ -45,7 +36,7 @@ describe('Variable', function () {
                 done();
             });
             it('dimensions', function (done) {
-                v.dimensions.should.eql(dobj);
+                v.dimensions.should.eql(dims);
                 done();
             });
             it('shape', function (done) {
@@ -53,7 +44,7 @@ describe('Variable', function () {
                 done();
             });
             it('unlimited', function (done) {
-                v.unlimited.should.equal(v.dimensions.length > 0 && v.dimensions[0].unlimited);
+                v.unlimited.should.equal(v.nDims > 0 && shp[0] === 0);
                 done();
             });
             it('type', function (done) {
@@ -63,10 +54,10 @@ describe('Variable', function () {
         });
     }
     function testVariableDims(type) {
-        testVariable(type, ['d1', 'd2', 'd3'], [0, 10, 15], [d1, d2, d3]);
-        testVariable(type, ['d1', 'd2'], [0, 10], [d1, d2]);
-        testVariable(type, ['d2', 'd3'], [10, 15], [d2, d3]);
-        testVariable(type, [], [], []);
+        testVariable(type, ['d1', 'd2', 'd3'], [0, 10, 15]);
+        testVariable(type, ['d1', 'd2'], [0, 10]);
+        testVariable(type, ['d2', 'd3'], [10, 15]);
+        testVariable(type, [], []);
     }
     testVariableDims('string');
     testVariableDims('int8');
