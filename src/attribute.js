@@ -1,77 +1,60 @@
 
-/*global define*/
-(function (root, factory) {
-    'use strict';
+'use strict';
 
-    if (typeof define === 'function' && define.amd) {
-        // AMD. Register as an anonymous module.
-        define(['common', 'types'], factory);
-    } else if (typeof exports === 'object') {
-        // Node. Does not work with strict CommonJS, but
-        // only CommonJS-like enviroments that support module.exports,
-        // like Node.
-        module.exports = factory(require('common'), require('types'));
-    } else {
-        // Browser globals (root is window)
-        root.returnExports = factory(root.common, root.types);
+var common = require('./common'), types = require('./types');
+var dP = common.dP;
+
+function Attribute(typeName) {
+    var values = [], type = types[typeName], that = this;
+    if (type === undefined) {
+        throw new Error("Invalid type: " + typeName);
+    } else if (typeName === 'string') {
+        values = '';
     }
-}(this, function (common, types) {
-    'use strict';
-    
-    var dP = common.dP;
-
-    function Attribute(typeName) {
-        var values = [], type = types[typeName], that = this;
-        if (type === undefined) {
-            throw new Error("Invalid type: " + typeName);
-        } else if (typeName === 'string') {
-            values = '';
+    dP(this, 'set', { value: function (val, index) {
+        var i;
+        if (!Array.isArray(val) && !type.validate(val)) {
+            throw new Error("Invalid value for attribute type: " + typeName);
         }
-        dP(this, 'set', { value: function (val, index) {
-            var i;
-            if (!Array.isArray(val) && !type.validate(val)) {
-                throw new Error("Invalid value for attribute type: " + typeName);
-            }
-            if (index === undefined) {
-                if (Array.isArray(val)) {
-                    values = [];
-                    for (i = 0; i < val.length; i++) {
-                        that.set(val[i], i);
-                    }
-                } else if (typeName === 'string') {
-                    values = val;
-                } else {
-                    values = [val];
+        if (index === undefined) {
+            if (Array.isArray(val)) {
+                values = [];
+                for (i = 0; i < val.length; i++) {
+                    that.set(val[i], i);
                 }
             } else if (typeName === 'string') {
                 values = val;
             } else {
-                values[index] = val;
+                values = [val];
             }
-            type.validate(values);
-        }});
-        dP(this, 'get', { value: function (index) {
-            if (index === undefined) {
-                return values.slice();
-            } else {
-                return values[index];
-            }
-        }});
-        dP(this, 'length', { get: function () {
-            return values.length;
-        }});
-        dP(this, 'toString', { value: function () {
-            return type.toString(values);
-        }});
-        Object.freeze(this);
-    }
-    dP(Attribute, 'fromObject', { value: function (obj) {
-        var attr = new Attribute(obj.type);
-        if (obj.hasOwnProperty('values')) {
-            attr.set(obj.values);
+        } else if (typeName === 'string') {
+            values = val;
+        } else {
+            values[index] = val;
         }
-        return attr;
+        type.validate(values);
     }});
+    dP(this, 'get', { value: function (index) {
+        if (index === undefined) {
+            return values.slice();
+        } else {
+            return values[index];
+        }
+    }});
+    dP(this, 'length', { get: function () {
+        return values.length;
+    }});
+    dP(this, 'toString', { value: function () {
+        return type.toString(values);
+    }});
+    Object.freeze(this);
+}
+dP(Attribute, 'fromObject', { value: function (obj) {
+    var attr = new Attribute(obj.type);
+    if (obj.hasOwnProperty('values')) {
+        attr.set(obj.values);
+    }
+    return attr;
+}});
 
-    return Attribute;
-}));
+module.exports = Attribute;
