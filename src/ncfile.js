@@ -145,7 +145,7 @@ dP(NcFile, 'read', { value: function (buffer, done) {
      
     var magic;
     var offsetType;
-    var numrecs;
+    var numrecs, recsize = 0;
     var marker;
     var name, size, type;
     var n, i, dims = [], dimids, dnames, j, attrs, v, offset;
@@ -195,6 +195,28 @@ dP(NcFile, 'read', { value: function (buffer, done) {
             err('Expected attribute array');
         }
         return atts;
+    }
+    function makeRead(v, offset) {
+        var i, shp = v.shape, prod, ul = v.unlimited;
+        var type = types[v.type], tsize = type.typeSize;
+        prod = shp.slice();
+        for (i = shp.length - 2; i >= 0; i--) {
+            prod[i] = prod[i+1] * shp[i];
+        }
+        if (ul) { prod[0] = 0; }
+        function readVar(start, count) {
+            var i, begin = 0, arr, n = 1;
+            for (i = 0; i < prod.length; i++) {
+                begin += prod[i] * start[i];
+                n *= count[i];
+            }
+            arr = new type.typedArray(n);
+            begin = offset + begin * tsize;
+            if (ul) { begin += start[0] * recsize; }
+
+            return view;
+        }
+        return readVar;
     }
     
     try {
@@ -257,9 +279,13 @@ dP(NcFile, 'read', { value: function (buffer, done) {
                 size = read(nbr);
                 offset = read(offsetType);
                 v = f.createVariable(name, type.toString(), dnames);
+                if (v.unlimited) { recsize += size; }
                 for (j = 0; j < attrs.length; j++) {
                     v.createAttribute(attrs[j].name, attrs[j].type.toString()).set(attrs[j].val);
                 }
+                dP(v, 'read', { value: function (start, count) {
+
+                }});
             }
         } else {
             err('Expected variable array');

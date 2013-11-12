@@ -72,6 +72,7 @@ StringType.prototype.readValue = function (index, view) {
 StringType.prototype.writeValue = function () {
     throw new Error('Internal error in types.js');
 };
+StringType.prototype.typedArray = Uint8Array;
 
 function NumberType () {}
 NumberType.prototype = Object.create(TypeDef.prototype);
@@ -80,9 +81,10 @@ NumberType.prototype.validation.push(function (value) { return typeof(value) ===
 NumberType.prototype.validation.push(function (value) { return Number.isFinite(value); });
 NumberType.prototype.validation.push(function (value) { return !Number.isNaN(value); });
 
-function SignedIntType (nBytes, fmtChar) {
+function SignedIntType (nBytes, fmtChar, typedArray) {
     var maxValue =  Math.pow(2, nBytes * 8 - 1) - 1,
         minValue = -maxValue - 1;
+    this.typedArray = typedArray;
     this.fmtChar = fmtChar;
     this.typeSize = nBytes;
     this.validation = this.validation.slice();
@@ -107,7 +109,8 @@ SignedIntType.prototype.writeValue = function (index, view, value) {
     return this.typeSize;
 };
 
-function FloatType (nBytes, fmtChar, prec) {
+function FloatType (nBytes, fmtChar, typedArray, prec) {
+    this.typedArray = typedArray;
     this.typeSize = nBytes;
     this.fmtChar = fmtChar;
     this.prec = prec;
@@ -159,14 +162,15 @@ int64Obj.writeValue = function (index, view, value) {
     return 8;
 };
 
-var numberObj = new SignedIntType(4, '');
-var float32Obj = new FloatType(4, 'f', 7);
-var float64Obj = new FloatType(8, '');
+var numberObj = new SignedIntType(4, '', Int32Array);
+var float32Obj = new FloatType(4, 'f', Float32Array, 7);
+var float64Obj = new FloatType(8, '', Float64Array);
 
 function DataType (typeStr, typeObj, cdlType) {
     var that = this;
     this.cdlType = cdlType;
     this.typeSize = typeObj.typeSize;
+    this.typedArray = typeObj.typedArray;
     this.toString = function (value) {
         var i, s = [];
         if (value === undefined) {
@@ -205,9 +209,9 @@ function DataType (typeStr, typeObj, cdlType) {
 
 var types = {
     string: new DataType('string', new StringType(), 'char'),
-    int8:  new DataType('int8',  new SignedIntType(1, 'b'), 'byte'),
-    int16: new DataType('int16', new SignedIntType(2, 's'), 'short'),
-    int32: new DataType('int32', new SignedIntType(4, ''), 'int'),
+    int8:  new DataType('int8',  new SignedIntType(1, 'b', Int8Array), 'byte'),
+    int16: new DataType('int16', new SignedIntType(2, 's', Int16Array), 'short'),
+    int32: new DataType('int32', new SignedIntType(4, '', Int32Array), 'int'),
     int64: new DataType('int64', int64Obj, 'long'),
     float32: new DataType('float32', float32Obj, 'float'),
     float64: new DataType('float64', float64Obj, 'double')
