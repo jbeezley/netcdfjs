@@ -22,11 +22,15 @@
     var dP = common.dP;
 
     function Variable(typeName, dnames, getDimid, getDim, getNRecs, fill) {
-        var type = types[typeName];
+        var type;
         var attrs = [];
         var anames = [];
         var that = this;
         
+        if (dnames === undefined) { dnames = []; }
+        if (typeof typeName === 'string') { type = types[typeName]; }
+        else { type = typeName; }
+
         function getDimids() {
             var i, d, dimids = [];
             for (i = 0; i < that.nDims; i++) {
@@ -39,10 +43,12 @@
         function getAttr(name) {
             return common.getValue(anames, attrs, name);
         }
-        dP(this, 'attributes', { get: function () {
+
+        dP(this, 'type', { enumerable: true, get: function () { return type.toString(); }});
+        dP(this, 'attributes', { enumerable: true, get: function () {
             return common.getObj(anames, attrs);
         }});
-        dP(this, 'dimensions', { get: function () {
+        dP(this, 'dimensions', { enumerable: true, get: function () {
             var dims = [], i;
             for (i = 0; i < that.nDims; i++) {
                 dims[i] = getDim(dnames[i]);
@@ -54,7 +60,11 @@
             if (getAttr(name) !== undefined) {
                 throw new Error("Duplicate attribute name");
             }
-            a = new Attribute(type);
+            if (type.constructor === Attribute) {
+                a = type;
+            } else {
+                a = new Attribute(type);
+            }
             anames.push(name);
             attrs.push(a);
             return a;
@@ -98,6 +108,6 @@
             return obj.type + ' ' + obj.dims;
         }});
     }
-
+    
     return Variable;
 }));

@@ -65,6 +65,13 @@
         }});
         Object.freeze(this);
     }
+    dP(Attribute, 'fromObject', { value: function (obj) {
+        var attr = new Attribute(obj.type);
+        if (obj.hasOwnProperty('values')) {
+            attr.set(obj.values);
+        }
+        return attr;
+    }});
 
     return Attribute;
 }));

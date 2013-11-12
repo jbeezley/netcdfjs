@@ -26,7 +26,7 @@
         if (typeof size !== 'number' || size < 0 || !Number.isFinite(size)) {
             throw new Error("Invalid dimension size: " + size);
         }
-        dP(this, 'size', { value: size });
+        dP(this, 'size', { enumerable: true, value: size });
         dP(this, 'unlimited', { value: size === 0 });
         dP(this, 'toString', { value: function () {
             if (that.unlimited) {
@@ -37,6 +37,5 @@
         }});
         Object.freeze(this);
     }
-
     return Dimension;
 }));

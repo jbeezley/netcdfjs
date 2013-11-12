@@ -56,6 +56,10 @@ describe('Variable', function () {
                 v.unlimited.should.equal(v.dimensions.length > 0 && v.dimensions[0].unlimited);
                 done();
             });
+            it('type', function (done) {
+                v.type.should.equal(type);
+                done();
+            });
         });
     }
     function testVariableDims(type) {
