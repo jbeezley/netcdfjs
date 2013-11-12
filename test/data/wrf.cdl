@@ -1,0 +1,62 @@
+netcdf wrf {
+dimensions:
+	Time = UNLIMITED ; // (0 currently)
+	DateStrLen = 19 ;
+	west_east = 41 ;
+	south_north = 43 ;
+	bottom_top = 40 ;
+	bottom_top_stag = 41 ;
+	west_east_stag = 42 ;
+	south_north_stag = 44 ;
+	west_east_subgrid = 420 ;
+	south_north_subgrid = 440 ;
+variables:
+	char Times(Time, DateStrLen) ;
+	float LU_INDEX(Time, south_north, west_east) ;
+		LU_INDEX:FieldType = 104 ;
+		LU_INDEX:MemoryOrder = "XY " ;
+		LU_INDEX:description = "LAND USE CATEGORY" ;
+		LU_INDEX:units = "" ;
+		LU_INDEX:stagger = "" ;
+	float ZNU(Time, bottom_top) ;
+		ZNU:FieldType = 104 ;
+		ZNU:MemoryOrder = "Z " ;
+		ZNU:description = "eta values of half (mass) levels" ;
+		ZNU:units = "" ;
+		ZNU:stagger = "" ;
+	float U(Time, bottom_top, south_north, west_east_stag) ;
+		U:FieldType = 104 ;
+		U:MemoryOrder = "XYZ" ;
+		U:description = "x-wind component" ;
+		U:units = "m s-1" ;
+		U:stagger = "X" ;
+		U:coordinates = "XLONG_U XLAT_U" ;
+	float V(Time, bottom_top, south_north_stag, west_east) ;
+		V:FieldType = 104 ;
+		V:MemoryOrder = "XYZ" ;
+		V:description = "y-wind component" ;
+		V:units = "m s-1" ;
+		V:stagger = "Y" ;
+		V:coordinates = "XLONG_V XLAT_V" ;
+	float W(Time, bottom_top_stag, south_north, west_east) ;
+		W:FieldType = 104 ;
+		W:MemoryOrder = "XYZ" ;
+		W:description = "z-wind component" ;
+		W:units = "m s-1" ;
+		W:stagger = "Z" ;
+		W:coordinates = "XLONG XLAT" ;
+	float GRNHFX(Time, south_north, west_east) ;
+		GRNHFX:FieldType = 104 ;
+		GRNHFX:MemoryOrder = "XY " ;
+		GRNHFX:description = "head flux from ground fire" ;
+		GRNHFX:units = "W/m^2" ;
+		GRNHFX:stagger = "Z" ;
+		GRNHFX:coordinates = "XLONG XLAT" ;
+	float FGRNHFX(Time, south_north_subgrid, west_east_subgrid) ;
+		FGRNHFX:FieldType = 104 ;
+		FGRNHFX:MemoryOrder = "XY " ;
+		FGRNHFX:description = "head flux from ground fire" ;
+		FGRNHFX:units = "W/m^2" ;
+		FGRNHFX:stagger = "Z" ;
+		FGRNHFX:coordinates = "XLONG XLAT" ;
+}

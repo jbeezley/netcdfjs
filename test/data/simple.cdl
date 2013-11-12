@@ -1,0 +1,13 @@
+netcdf simple {
+dimensions:
+	nx = 10 ;
+	ny = 15 ;
+	Time = UNLIMITED ; // (0 currently)
+variables:
+	int varA(nx, ny) ;
+	float varB(Time, ny, nx) ;
+		varB:attrA = 1., 2., 3. ;
+
+// global attributes:
+		:attrStr = "I am an attribute" ;
+}

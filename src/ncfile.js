@@ -98,7 +98,7 @@ function NcFile() {
             }
         }
         s.push('}');
-        return s.join('\n');
+        return s.join('\n') + '\n';
     }});
 }
 dP(NcFile, 'fromObject', { value: function (obj) {
@@ -226,7 +226,8 @@ dP(NcFile, 'read', { value: function (buffer, done) {
             for (i = 0; i < n; i++) {
                 name = readA(str);
                 size = read(nbr);
-                dims.push(f.createDimension(name, size));
+                dims.push(name);
+                f.createDimension(name, size);
             }
         } else {
             err('Expected a dimension array');
@@ -263,12 +264,12 @@ dP(NcFile, 'read', { value: function (buffer, done) {
         } else {
             err('Expected variable array');
         }
-        done(f);
 
     } catch(e) {
         done(e.msg || e.toString());
         return;
     }
+    done(f);
     
 }});
 

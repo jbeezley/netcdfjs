@@ -85,7 +85,11 @@ function testReadWrite(type, value, eps) {
         it('toString/fromString ' + type.toString(value), function (done) {
             var s = type.toString(value), o = types.fromString(s);
             o.type.should.equal(type);
-            o.value.should.equal(value);
+            if (type === types.float32) {
+                o.value.should.within(value - Math.abs(value) * 10e-7, value + Math.abs(value) * 10e-7);
+            } else {
+                o.value.should.equal(value);
+            }
             done();
         });
     }

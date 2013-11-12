@@ -29,10 +29,15 @@ describe('NcFile', function () {
     function testRead(fname) {
         it('Reading ' + fname, function (done) {
             var buffer = fs.readFileSync('test/data/' + fname);
-            var f = NcFile.read(buffer, function (obj) {
+            NcFile.read(buffer, function (obj) {
+                var cdl, base, str;
                 if (obj.constructor !== NcFile) {
                     throw obj;
                 }
+                base = fname.substr(0, fname.length-3);
+                cdl = 'test/data/' + base + '.cdl';
+                str = fs.readFileSync(cdl).toString().replace(/\\000/gm, '\x00').replace(/\\001/gm, '\x01').replace(/\\002/gm, '\x02');
+                obj.toString(base).should.equal(str);
                 done();
             });
         })

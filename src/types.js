@@ -57,7 +57,6 @@ TypeDef.prototype = {
 function StringType () {}
 StringType.prototype = Object.create(TypeDef.prototype);
 StringType.prototype.format = function (value) {
-    //if (Array.isArray(value)) { value = value.join(''); }
     return '"' + value + '"';
 };
 StringType.prototype.validation = TypeDef.prototype.validation.slice();
@@ -108,9 +107,10 @@ SignedIntType.prototype.writeValue = function (index, view, value) {
     return this.typeSize;
 };
 
-function FloatType (nBytes, fmtChar) {
+function FloatType (nBytes, fmtChar, prec) {
     this.typeSize = nBytes;
     this.fmtChar = fmtChar;
+    this.prec = prec;
 }
 FloatType.prototype = Object.create(NumberType.prototype);
 FloatType.prototype.readValue = function (index, view) {
@@ -121,11 +121,15 @@ FloatType.prototype.writeValue = function (index, view, value) {
     return this.typeSize;
 };
 FloatType.prototype.format = function (value) {
-    if (Math.floor(value) === value) {
-        return value.toFixed(1);
-    } else {
-        return value.toString();
+    var s;
+    value = Number(value.toPrecision(this.prec));
+
+    s = value.toString();
+    if (s.search(/\./) === -1) {
+        if (s.search(/e/) === -1) { s = s + '.'; }
+        else { s = s.replace('e', '.e'); }
     }
+    return s;
 };
 
 var int64Obj = new SignedIntType(8, 'l');
@@ -156,7 +160,7 @@ int64Obj.writeValue = function (index, view, value) {
 };
 
 var numberObj = new SignedIntType(4, '');
-var float32Obj = new FloatType(4, 'f');
+var float32Obj = new FloatType(4, 'f', 7);
 var float64Obj = new FloatType(8, '');
 
 function DataType (typeStr, typeObj, cdlType) {
@@ -221,7 +225,7 @@ Object.defineProperty(types, 'fromString', { value: function (s) {
         out.value = Number(m);
     } else if (l === 'f') {
         out.type = types.float32;
-        out.value = Number(m);
+        out.value = Number(Number(m).toPrecision(7));
     } else if (l === 'l') {
         out.type = types.int64;
         out.value = Number(m);
