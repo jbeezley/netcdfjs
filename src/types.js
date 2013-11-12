@@ -162,6 +162,7 @@ var float64Obj = new FloatType(8, '');
 function DataType (typeStr, typeObj, cdlType) {
     var that = this;
     this.cdlType = cdlType;
+    this.typeSize = typeObj.typeSize;
     this.toString = function (value) {
         var i, s = [];
         if (value === undefined) {

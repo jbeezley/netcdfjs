@@ -134,5 +134,142 @@ dP(NcFile, 'fromObject', { value: function (obj) {
     }
     return f;
 }});
+dP(NcFile, 'read', { value: function (buffer, done) {
+    function err(msg) {
+        throw new Error(msg);
+    }
+    var view;
+    var index = 0;
+    var f;
+    var str = types.string, nbr = types.int32;
+     
+    var magic;
+    var offsetType;
+    var numrecs;
+    var marker;
+    var name, size, type;
+    var n, i, dims = [], dimids, dnames, j, attrs, v, offset;
+
+    function skip() {
+        index += (4 - (index % 4)) % 4;
+    }
+    function read(type, len) {
+        var v = type.read(index, view, len);
+        if (len === undefined) { len = 1; }
+        index += len * type.typeSize;
+        skip();
+        return v;
+    }
+    function readA(type) {
+        var v = type.readArray(index, view);
+        index += nbr.typeSize + v.length * type.typeSize;
+        skip();
+        return v;
+    }
+    function readType() {
+        var ts = read(nbr);
+        if (ts === 1) { return types.int8; }
+        else if (ts === 2) { return types.string; }
+        else if (ts === 3) { return types.int16; }
+        else if (ts === 4) { return types.int32; }
+        else if (ts === 5) { return types.float32; }
+        else if (ts === 6) { return types.float64; }
+        else { err("Invalid type id: " + ts); }
+    }
+    function readAtts() {
+        var n, i, atts = [], type, val, name;
+        marker = read(nbr);
+        if (marker === 0) {
+            if (read(nbr) !== 0) {
+                err('Expected 0 after ABSENT attribute marker');
+            }
+        } else if (marker === 12) {
+            n = read(nbr);
+            for (i = 0; i < n; i++) {
+                name = readA(str);
+                type = readType();
+                val = readA(type);
+                atts.push( { name: name, type: type, val: val } );
+            }
+        } else {
+            err('Expected attribute array');
+        }
+        return atts;
+    }
+    
+    try {
+        f = new NcFile();
+        view = common.getDataView(buffer);
+        magic = read(str, 4);
+    
+        if (magic.slice(0,3) !== 'CDF') {
+            err('Invalid magic');
+        }
+        if (magic[3] === '\x01') {
+            offsetType = nbr;
+        } else if (magic[3] === '\x02') {
+            offsetType = types.int64;
+        } else {
+            err('Invalid version byte');
+        }
+        numrecs = read(nbr);
+        if (numrecs < 0) {
+            err('Invalid record size');
+        }
+        marker = read(nbr);
+        if (marker === 0) {
+            if (read(nbr) !== 0) {
+                err('Expected 0 after ABSENT dimension marker');
+            }
+        } else if (marker === 10) {
+            n = read(nbr);
+            for (i = 0; i < n; i++) {
+                name = readA(str);
+                size = read(nbr);
+                dims.push(f.createDimension(name, size));
+            }
+        } else {
+            err('Expected a dimension array');
+        }
+
+        attrs = readAtts(f);
+        for (i = 0; i < attrs.length; i++) {
+            f.createAttribute(attrs[i].name, attrs[i].type.toString()).set(attrs[i].val);
+        }
+        
+        marker = read(nbr);
+        if (marker === 0) {
+            if (read(nbr) !== 0) {
+                err('Expected 0 after ABSENT variable marker');
+            }
+        } else if (marker === 11) {
+            n = read(nbr);
+            for (i = 0; i < n; i++) {
+                name = readA(str);
+                dimids = readA(nbr);
+                dnames = [];
+                for (j = 0; j < dimids.length; j++) {
+                    dnames.push(dims[dimids[j]]);
+                }
+                attrs = readAtts(f);
+                type = readType();
+                size = read(nbr);
+                offset = read(offsetType);
+                v = f.createVariable(name, type.toString(), dnames);
+                for (j = 0; j < attrs.length; j++) {
+                    v.createAttribute(attrs[j].name, attrs[j].type.toString()).set(attrs[j].val);
+                }
+            }
+        } else {
+            err('Expected variable array');
+        }
+        done(f);
+
+    } catch(e) {
+        done(e.msg || e.toString());
+        return;
+    }
+    
+}});
 
 module.exports = NcFile;

@@ -20,5 +20,25 @@ module.exports = {
         }
         return obj;
     },
+    getDataView: function (obj) {
+        var i, view;
+        if (obj.constructor === ArrayBuffer) {
+            return new DataView(obj);
+        } else if (obj.constructor === DataView) {
+            return obj;
+        } else if (typeof obj === 'number') {
+            return new DataView(new ArrayBuffer(obj));
+        } else if (obj.hasOwnProperty('buffer')) {
+            return new DataView(obj.buffer);
+        } else if (typeof obj.readUInt8 === 'function') {
+            view = new DataView(new ArrayBuffer(obj.length));
+            for (i = 0; i < obj.length; i++) {
+                view.setUint8(i, obj.readUInt8(i));
+            }
+            return view;
+        } else {
+            throw new Error("Invalid input parameter");
+        }
+    },
     dP: Object.defineProperty
 };

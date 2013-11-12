@@ -3,6 +3,7 @@ var chai = require('chai');
 chai.should();
 
 var NcFile = require('ncfile');
+var fs = require('fs');
 
 describe('NcFile', function () {
     it('create file', function (done) {
@@ -25,4 +26,19 @@ describe('NcFile', function () {
         
         done();
     });
+    function testRead(fname) {
+        it('Reading ' + fname, function (done) {
+            var buffer = fs.readFileSync('test/data/' + fname);
+            var f = NcFile.read(buffer, function (obj) {
+                if (obj.constructor !== NcFile) {
+                    throw obj;
+                }
+                done();
+            });
+        })
+    }
+    testRead('empty.nc');
+    testRead('simple.nc');
+    testRead('types.nc');
+    testRead('wrf.nc');
 });
