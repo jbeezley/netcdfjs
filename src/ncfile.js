@@ -3,7 +3,7 @@
 
 var common = require('./common'), types = require('./types'),
     Variable = require('./variable'), Dimension = require('./dimension'),
-    Attribute = require('./attribute');
+    Attribute = require('./attribute'), NDArray = require('ndarray');
 var dP = common.dP;
 
 function NcFile() {
@@ -197,24 +197,99 @@ dP(NcFile, 'read', { value: function (buffer, done) {
         return atts;
     }
     function makeRead(v, offset) {
-        var i, shp = v.shape, prod, ul = v.unlimited;
+        var i, shp = v.shape, prod, ul = v.unlimited ? 1 : 0;
         var type = types[v.type], tsize = type.typeSize;
-        prod = shp.slice();
-        for (i = shp.length - 2; i >= 0; i--) {
-            prod[i] = prod[i+1] * shp[i];
+        var nda = [], buffer = [], nBuffer;
+        var nvrec, b, n = shp.length;
+        function zeros(n) {
+            var i, a = [];
+            for (i = 0; i < n; i++) { a.push(0); }
+            return a;
         }
-        if (ul) { prod[0] = 0; }
-        function readVar(start, count) {
-            var i, begin = 0, arr, n = 1;
-            for (i = 0; i < prod.length; i++) {
-                begin += prod[i] * start[i];
-                n *= count[i];
+        function flatten(A) {
+            var i, j, k;
+            if (A.length === 0) {
+                return new type.typedArray(0);
             }
-            arr = new type.typedArray(n);
-            begin = offset + begin * tsize;
-            if (ul) { begin += start[0] * recsize; }
+            var irec = 0, x = zeros(n);
+            var B;
+            function inc() {
+                var i;
+                x[n-1] = x[n-1] + 1;
+                for (i = n-1; i >= 1; i--) {
+                    if (x[i] === A[0].shape[i]) {
+                        x[i] = 0;
+                        x[i-1] = x[i-1] + 1;
+                    }
+                }
+                if (x[0] === A[0].shape[0]) {irec++;}
+            }
 
-            return view;
+            B = new type.typedArray( nvrec * A[0].size );
+            k = 0;
+            for (i = 0; i < A.length; i++) {
+                for (j = 0; j < A[0].size; j++) {
+                    B.set(k++, A.get.apply(A, x));
+                    inc();
+                }
+            }
+            return B;
+            
+        }
+
+        if (ul) {
+            nvrec = numrecs;
+            shp = shp.slice(1);
+        } else {
+            nvrec = 1;
+        }
+        
+        nBuffer = shp.reduce(function (a,b) { return a*b; });
+        for (i = 0; i < nvrec; i++) {
+            b = new type.typedArray(view.buffer, offset + i*recsize, nBuffer);
+            buffer.push(b);
+            nda.push(new NDArray(b, shp));
+        }
+
+        function readVar(start, count) {
+            var B, C, i, m = n + ul, lo, hi;
+            if (start === undefined) {
+                start = [];
+                start.length = m;
+            }
+            if (count === undefined) {
+                count = [];
+                count = m;
+            }
+            if ( start.length !== m || count !== m ) {
+                throw new Error("Invalid start/count argument length");
+            }
+            hi = [];
+            lo = [];
+            B = [];
+            if (start[0] < 0 ||
+                count[0] < 0 ||
+                start[0] + count[0] > nvrec) {
+                throw new Error("Invalid start/count for record dimension");
+            }
+            for (i = 1; i < m; i++) {
+                if (start[i] === undefined) {
+                    start[i] = 0;
+                }
+                if (count[i] === undefined) {
+                    count[i] = shp[i-1] - start[i];
+                }
+                lo = start[i];
+                hi = start[i] + count[i];
+                if (lo < 0 || hi < lo || hi > shp[i-1]) {
+                    throw new Error("Invalid start/count values");
+                }
+            }
+            for (i = 0; i < count[0]; i++) {
+                C = nda[i].lo.apply(nda[i], lo);
+                B.push(C.hi.apply(C, hi));
+            }
+            return flatten(B);
         }
         return readVar;
     }
