@@ -41,7 +41,6 @@ describe('NcFile', function () {
                 vars = obj.variables;
                 for (var v in vars) {
                     vars[v].read();
-                    //console.log(vars[v].read());
                 }
                 done();
             });
@@ -51,4 +50,43 @@ describe('NcFile', function () {
     testRead('simple.nc');
     testRead('types.nc');
     testRead('wrf.nc');
+    var rname = 'readtest.nc';
+    it.skip('Checking values from ' + rname, function (done) {
+        function ival(idx) {
+            var k = 1, o = 0, j;
+            for (j = 0; j < idx.length; j++) {
+                o += k*idx[j];
+                k *= 10;
+            }
+            return o;
+        }
+        function checkVar(A, shp, m) {
+            var iu, ix, iy, iz, iw, i, val;
+            i = 0;
+            for (iu = 0; iu < shp[0]; iu++) {
+                for (ix = 0; ix < shp[1]; ix++) {
+                    for (iy = 0; iy < shp[2]; iy++) {
+                        for (iz = 0; iz < shp[3]; iz++) {
+                            for (iw = 0; iw < shp[4]; iw++) {
+                                val = ival([iu,ix,iy,iz,iw]) % m;
+                                A[k++].should.equal(val);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        var buffer = fs.readFileSync('test/data/' + rname);
+        NcFile.read(buffer, function (f) {
+            if (f.constructor !== NcFile) {
+                throw f;
+            }
+            checkVar(f.variables.i1.read(), f.variables.i1.shape, Math.pow(2, 7));
+            checkVar(f.variables.i2.read(), f.variables.i2.shape, Math.pow(2, 15));
+            checkVar(f.variables.i4.read(), f.variables.i4.shape, Math.pow(2, 31));
+            checkVar(f.variables.f4.read(), f.variables.f4.shape, Math.pow(2, 63));
+            checkVar(f.variables.f8.read(), f.variables.f8.shape, Math.pow(2, 63));
+            done();
+        });
+    });
 });
