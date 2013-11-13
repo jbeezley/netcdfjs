@@ -1,4 +1,7 @@
 
+browser: test
+	browserify src/main.js -o netcdf3.js
+
 test:
 	@NODE_PATH=./src ./node_modules/.bin/mocha -R spec
 
@@ -7,4 +10,4 @@ coverage:
 	@NETCDFJS_COV=1 NODE_PATH=./src-cov ./node_modules/.bin/mocha -R html-cov > coverage.html
 
 
-.PHONY: test
+.PHONY: test coverage browser
