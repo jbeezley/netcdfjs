@@ -38,6 +38,11 @@ describe('NcFile', function () {
                 cdl = 'test/data/' + base + '.cdl';
                 str = fs.readFileSync(cdl).toString().replace(/\\000/gm, '\x00').replace(/\\001/gm, '\x01').replace(/\\002/gm, '\x02');
                 obj.toString(base).should.equal(str);
+                vars = obj.variables;
+                for (var v in vars) {
+                    vars[v].read();
+                    //console.log(vars[v].read());
+                }
                 done();
             });
         })

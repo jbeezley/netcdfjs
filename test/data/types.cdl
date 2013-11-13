@@ -1,46 +1,46 @@
 netcdf types {
 dimensions:
-	unlimited = UNLIMITED ; // (0 currently)
+	unl = UNLIMITED ; // (0 currently)
 	nx = 10 ;
 	ny = 7 ;
 variables:
 	short varint16(ny, nx) ;
-		varint16:attrchar = "0: \000, 1: \001 2: \002" ;
+		varint16:attrchar = "0: " ;
 		varint16:attrint8 = 0b, 1b, 2b, 3b, -1b, -2b, -3b, -4b ;
 		varint16:attrint16 = 1s, -1s, 0s, 127s ;
 		varint16:attrint32 = 1, -1, 0, -2147483648, 2147483647 ;
 		varint16:attrfloat32 = 0.f, 1.f, -1.f, 3.f, 14159.f, 1.e-32f, -7.12e+31f ;
 		varint16:attrfloat64 = 1.1e+300 ;
 	char varint32(nx) ;
-		varint32:attrchar = "0: \000, 1: \001 2: \002" ;
+		varint32:attrchar = "0: " ;
 		varint32:attrint8 = 0b, 1b, 2b, 3b, -1b, -2b, -3b, -4b ;
 		varint32:attrint16 = 1s, -1s, 0s, 127s ;
 		varint32:attrint32 = 1, -1, 0, -2147483648, 2147483647 ;
 		varint32:attrfloat32 = 0.f, 1.f, -1.f, 3.f, 14159.f, 1.e-32f, -7.12e+31f ;
 		varint32:attrfloat64 = 1.1e+300 ;
 	float varfloat32(ny) ;
-		varfloat32:attrchar = "0: \000, 1: \001 2: \002" ;
+		varfloat32:attrchar = "0: " ;
 		varfloat32:attrint8 = 0b, 1b, 2b, 3b, -1b, -2b, -3b, -4b ;
 		varfloat32:attrint16 = 1s, -1s, 0s, 127s ;
 		varfloat32:attrint32 = 1, -1, 0, -2147483648, 2147483647 ;
 		varfloat32:attrfloat32 = 0.f, 1.f, -1.f, 3.f, 14159.f, 1.e-32f, -7.12e+31f ;
 		varfloat32:attrfloat64 = 1.1e+300 ;
 	double varfloat64 ;
-		varfloat64:attrchar = "0: \000, 1: \001 2: \002" ;
+		varfloat64:attrchar = "0: " ;
 		varfloat64:attrint8 = 0b, 1b, 2b, 3b, -1b, -2b, -3b, -4b ;
 		varfloat64:attrint16 = 1s, -1s, 0s, 127s ;
 		varfloat64:attrint32 = 1, -1, 0, -2147483648, 2147483647 ;
 		varfloat64:attrfloat32 = 0.f, 1.f, -1.f, 3.f, 14159.f, 1.e-32f, -7.12e+31f ;
 		varfloat64:attrfloat64 = 1.1e+300 ;
-	char varchar(unlimited, ny, nx) ;
-		varchar:attrchar = "0: \000, 1: \001 2: \002" ;
+	char varchar(unl, ny, nx) ;
+		varchar:attrchar = "0: " ;
 		varchar:attrint8 = 0b, 1b, 2b, 3b, -1b, -2b, -3b, -4b ;
 		varchar:attrint16 = 1s, -1s, 0s, 127s ;
 		varchar:attrint32 = 1, -1, 0, -2147483648, 2147483647 ;
 		varchar:attrfloat32 = 0.f, 1.f, -1.f, 3.f, 14159.f, 1.e-32f, -7.12e+31f ;
 		varchar:attrfloat64 = 1.1e+300 ;
-	byte varint8(unlimited) ;
-		varint8:attrchar = "0: \000, 1: \001 2: \002" ;
+	byte varint8(unl) ;
+		varint8:attrchar = "0: " ;
 		varint8:attrint8 = 0b, 1b, 2b, 3b, -1b, -2b, -3b, -4b ;
 		varint8:attrint16 = 1s, -1s, 0s, 127s ;
 		varint8:attrint32 = 1, -1, 0, -2147483648, 2147483647 ;
@@ -48,7 +48,7 @@ variables:
 		varint8:attrfloat64 = 1.1e+300 ;
 
 // global attributes:
-		:attrchar = "0: \000, 1: \001 2: \002" ;
+		:attrchar = "0: " ;
 		:attrint8 = 0b, 1b, 2b, 3b, -1b, -2b, -3b, -4b ;
 		:attrint16 = 1s, -1s, 0s, 127s ;
 		:attrint32 = 1, -1, 0, -2147483648, 2147483647 ;

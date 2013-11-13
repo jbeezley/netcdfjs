@@ -197,8 +197,8 @@ dP(NcFile, 'read', { value: function (buffer, done) {
         return atts;
     }
     function makeRead(v, offset) {
-        var i, shp = v.shape, prod, ul = v.unlimited ? 1 : 0;
-        var type = types[v.type], tsize = type.typeSize;
+        var i, shp = v.shape, ul = v.unlimited ? 1 : 0;
+        var type = types[v.type];
         var nda = [], buffer = [], nBuffer;
         var nvrec, b, n = shp.length;
         function zeros(n) {
@@ -222,14 +222,18 @@ dP(NcFile, 'read', { value: function (buffer, done) {
                         x[i-1] = x[i-1] + 1;
                     }
                 }
-                if (x[0] === A[0].shape[0]) {irec++;}
+                if (x[0] === A[0].shape[0]) {
+                    irec++;
+                    x = zeros(n);
+                }
             }
 
             B = new type.typedArray( nvrec * A[0].size );
             k = 0;
             for (i = 0; i < A.length; i++) {
                 for (j = 0; j < A[0].size; j++) {
-                    B.set(k++, A.get.apply(A, x));
+                    v = A[irec].get.apply(A[irec], x);
+                    B.set(k++, A[irec].get.apply(A[irec], x));
                     inc();
                 }
             }
@@ -244,49 +248,64 @@ dP(NcFile, 'read', { value: function (buffer, done) {
             nvrec = 1;
         }
         
-        nBuffer = shp.reduce(function (a,b) { return a*b; });
+        nBuffer = shp.reduce(function (a,b) { return a*b; }, 1);
         for (i = 0; i < nvrec; i++) {
-            b = new type.typedArray(view.buffer, offset + i*recsize, nBuffer);
+            b = type.wrapView(view, offset + i*recsize, offset + nBuffer * type.typeSize);
             buffer.push(b);
-            nda.push(new NDArray(b, shp));
+            if (shp.length) {
+                nda.push(new NDArray(b, shp));
+            } else {
+                nda.push(new NDArray(b, [1]));
+            }
         }
 
         function readVar(start, count) {
-            var B, C, i, m = n + ul, lo, hi;
+            var B, C, i, m = n - ul, lo, hi, srec, crec;
             if (start === undefined) {
                 start = [];
-                start.length = m;
+                start.length = n;
             }
             if (count === undefined) {
                 count = [];
-                count = m;
+                count.length = n;
             }
-            if ( start.length !== m || count !== m ) {
+            if ( start.length !== n || count.length !== n ) {
                 throw new Error("Invalid start/count argument length");
+            }
+            if (ul) {
+                srec = start[0];
+                crec = count[0];
+                start = start.slice(1);
+                count = count.slice(1);
+            } else {
+                srec = 0;
+                crec = 1;
             }
             hi = [];
             lo = [];
             B = [];
-            if (start[0] < 0 ||
-                count[0] < 0 ||
-                start[0] + count[0] > nvrec) {
+            if (srec === undefined) { srec = 0; }
+            if (crec === undefined) { crec = nvrec; }
+            if (srec < 0 ||
+                crec < 0 ||
+                srec + crec > nvrec) {
                 throw new Error("Invalid start/count for record dimension");
             }
-            for (i = 1; i < m; i++) {
+            for (i = 0; i < m; i++) {
                 if (start[i] === undefined) {
                     start[i] = 0;
                 }
                 if (count[i] === undefined) {
-                    count[i] = shp[i-1] - start[i];
+                    count[i] = shp[i + ul] - start[i];
                 }
-                lo = start[i];
-                hi = start[i] + count[i];
-                if (lo < 0 || hi < lo || hi > shp[i-1]) {
+                lo.push(start[i]);
+                hi.push(start[i] + count[i]);
+                if (lo[i] < 0 || hi[i] < lo || hi[i] > shp[i+ul]) {
                     throw new Error("Invalid start/count values");
                 }
             }
-            for (i = 0; i < count[0]; i++) {
-                C = nda[i].lo.apply(nda[i], lo);
+            for (i = 0; i < crec; i++) {
+                C = nda[i+srec].lo.apply(nda[i+srec], lo);
                 B.push(C.hi.apply(C, hi));
             }
             return flatten(B);
@@ -358,9 +377,7 @@ dP(NcFile, 'read', { value: function (buffer, done) {
                 for (j = 0; j < attrs.length; j++) {
                     v.createAttribute(attrs[j].name, attrs[j].type.toString()).set(attrs[j].val);
                 }
-                dP(v, 'read', { value: function (start, count) {
-
-                }});
+                dP(v, 'read', { value: makeRead(v, offset) });
             }
         } else {
             err('Expected variable array');
