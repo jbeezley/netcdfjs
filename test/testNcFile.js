@@ -51,7 +51,7 @@ describe('NcFile', function () {
     testRead('types.nc');
     testRead('wrf.nc');
     var rname = 'readtest.nc';
-    it.skip('Checking values from ' + rname, function (done) {
+    describe('Checking values from ' + rname, function () {
         function ival(idx) {
             var k = 1, o = 0, j;
             for (j = 0; j < idx.length; j++) {
@@ -69,7 +69,7 @@ describe('NcFile', function () {
                         for (iz = 0; iz < shp[3]; iz++) {
                             for (iw = 0; iw < shp[4]; iw++) {
                                 val = ival([iu,ix,iy,iz,iw]) % m;
-                                A[k++].should.equal(val);
+                                A[i++].should.equal(val);
                             }
                         }
                     }
@@ -81,12 +81,26 @@ describe('NcFile', function () {
             if (f.constructor !== NcFile) {
                 throw f;
             }
-            checkVar(f.variables.i1.read(), f.variables.i1.shape, Math.pow(2, 7));
-            checkVar(f.variables.i2.read(), f.variables.i2.shape, Math.pow(2, 15));
-            checkVar(f.variables.i4.read(), f.variables.i4.shape, Math.pow(2, 31));
-            checkVar(f.variables.f4.read(), f.variables.f4.shape, Math.pow(2, 63));
-            checkVar(f.variables.f8.read(), f.variables.f8.shape, Math.pow(2, 63));
-            done();
+            it('i1', function (done) {
+                checkVar(f.variables.i1.read(), f.variables.i1.shape, Math.pow(2, 7));
+                done();
+            });
+            it('i2', function (done) {
+                checkVar(f.variables.i2.read(), f.variables.i2.shape, Math.pow(2, 15));
+                done();
+            });
+            it('i4', function (done) {
+                checkVar(f.variables.i4.read(), f.variables.i4.shape, Math.pow(2, 31));
+                done();
+            });
+            it('f4', function (done) {
+                checkVar(f.variables.f4.read(), f.variables.f4.shape, Math.pow(2, 63));
+                done();
+            });
+            it('f8', function (done) {
+                checkVar(f.variables.f8.read(), f.variables.f8.shape, Math.pow(2, 63));
+                done();
+            });
         });
     });
 });

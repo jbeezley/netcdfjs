@@ -172,7 +172,7 @@ function DataType (typeStr, typeObj, cdlType) {
     this.typeSize = typeObj.typeSize;
     this.typedArray = typeObj.typedArray;
     this.wrapView = function (view, offset, length) {
-        var wrapped = new DataView(view.buffer.slice(offset, length));
+        var wrapped = new DataView(view.buffer.slice(offset, offset + length));
         wrapped.get = function (index) { return typeObj.readData(index * typeObj.typeSize, wrapped); };
         wrapped.set = function (index, value) { typeObj.writeData(index * typeObj.typeSize, wrapped, value); };
         wrapped.length = wrapped.byteLength/typeObj.typeSize;

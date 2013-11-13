@@ -35,7 +35,8 @@ function NcFile() {
         }
         return str;
     }
-
+    
+    dP(this, 'setNumRecs', { value: function (n) { nRecs = n; } });
     dP(this, 'dimensions', { enumerable: true, get: function () {
         return common.getObj(dnames, dims);
     }});
@@ -148,8 +149,8 @@ dP(NcFile, 'read', { value: function (buffer, done) {
     var numrecs, recsize = 0;
     var marker;
     var name, size, type;
-    var n, i, dims = [], dimids, dnames, j, attrs, v, offset;
-
+    var n, i, dims = [], dimids, dnames, j, attrs, v, offset, offsets = {};
+    
     function skip() {
         index += (4 - (index % 4)) % 4;
     }
@@ -200,7 +201,7 @@ dP(NcFile, 'read', { value: function (buffer, done) {
         var i, shp = v.shape, ul = v.unlimited ? 1 : 0;
         var type = types[v.type];
         var nda = [], buffer = [], nBuffer;
-        var nvrec, b, n = shp.length;
+        var nvrec, b, n = shp.length - ul;
         function zeros(n) {
             var i, a = [];
             for (i = 0; i < n; i++) { a.push(0); }
@@ -212,7 +213,7 @@ dP(NcFile, 'read', { value: function (buffer, done) {
                 return new type.typedArray(0);
             }
             var irec = 0, x = zeros(n);
-            var B;
+            var B, vvvv;
             function inc() {
                 var i;
                 x[n-1] = x[n-1] + 1;
@@ -232,7 +233,7 @@ dP(NcFile, 'read', { value: function (buffer, done) {
             k = 0;
             for (i = 0; i < A.length; i++) {
                 for (j = 0; j < A[0].size; j++) {
-                    v = A[irec].get.apply(A[irec], x);
+                    vvvv = A[irec].get.apply(A[irec], x);
                     B.set(k++, A[irec].get.apply(A[irec], x));
                     inc();
                 }
@@ -250,7 +251,7 @@ dP(NcFile, 'read', { value: function (buffer, done) {
         
         nBuffer = shp.reduce(function (a,b) { return a*b; }, 1);
         for (i = 0; i < nvrec; i++) {
-            b = type.wrapView(view, offset + i*recsize, offset + nBuffer * type.typeSize);
+            b = type.wrapView(view, offset + i*recsize, nBuffer * type.typeSize);
             buffer.push(b);
             if (shp.length) {
                 nda.push(new NDArray(b, shp));
@@ -260,16 +261,16 @@ dP(NcFile, 'read', { value: function (buffer, done) {
         }
 
         function readVar(start, count) {
-            var B, C, i, m = n - ul, lo, hi, srec, crec;
+            var B, C, i, m = n, lo, hi, srec, crec;
             if (start === undefined) {
                 start = [];
-                start.length = n;
+                start.length = n + ul;
             }
             if (count === undefined) {
                 count = [];
-                count.length = n;
+                count.length = n + ul;
             }
-            if ( start.length !== n || count.length !== n ) {
+            if ( start.length !== n + ul|| count.length !== n + ul) {
                 throw new Error("Invalid start/count argument length");
             }
             if (ul) {
@@ -296,11 +297,11 @@ dP(NcFile, 'read', { value: function (buffer, done) {
                     start[i] = 0;
                 }
                 if (count[i] === undefined) {
-                    count[i] = shp[i + ul] - start[i];
+                    count[i] = shp[i] - start[i];
                 }
                 lo.push(start[i]);
                 hi.push(start[i] + count[i]);
-                if (lo[i] < 0 || hi[i] < lo || hi[i] > shp[i+ul]) {
+                if (lo[i] < 0 || hi[i] < lo || hi[i] > shp[i]) {
                     throw new Error("Invalid start/count values");
                 }
             }
@@ -332,6 +333,7 @@ dP(NcFile, 'read', { value: function (buffer, done) {
         if (numrecs < 0) {
             err('Invalid record size');
         }
+        f.setNumRecs(numrecs);
         marker = read(nbr);
         if (marker === 0) {
             if (read(nbr) !== 0) {
@@ -372,11 +374,17 @@ dP(NcFile, 'read', { value: function (buffer, done) {
                 type = readType();
                 size = read(nbr);
                 offset = read(offsetType);
+                offsets[name] = offset;
                 v = f.createVariable(name, type.toString(), dnames);
                 if (v.unlimited) { recsize += size; }
                 for (j = 0; j < attrs.length; j++) {
                     v.createAttribute(attrs[j].name, attrs[j].type.toString()).set(attrs[j].val);
                 }
+                //dP(v, 'read', { value: makeRead(v, offset) });
+            }
+            for (i in f.variables) {
+                offset = offsets[i];
+                v = f.variables[i];
                 dP(v, 'read', { value: makeRead(v, offset) });
             }
         } else {
