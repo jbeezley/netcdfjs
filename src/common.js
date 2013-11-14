@@ -1,3 +1,4 @@
+/*jshint forin: false */
 
 'use strict';
 function getIndex(A, s) {
@@ -7,6 +8,54 @@ function getIndex(A, s) {
     }
     return -1;
 }
+
+function ViewFromBuffer(b) {
+    this.getUint8 = function(index) {
+        return b.readUInt8(index);
+    };
+    this.setUint8 = function(index, value) {
+        return b.writeUInt8(index, value);
+    };
+    this.getInt8 = function(index) {
+        return b.readInt8(index);
+    };
+    this.setInt8 = function(index, value) {
+        return b.writeInt8(index, value);
+    };
+    this.getInt16 = function(index) {
+        return b.readInt16BE(index);
+    };
+    this.setInt16 = function(index, value) {
+        return b.writeInt16BE(index, value);
+    };
+    this.getInt32 = function(index) {
+        return b.readInt32BE(index);
+    };
+    this.setInt32 = function(index, value) {
+        return b.writeInt32BE(index, value);
+    };
+    this.getFloat32 = function(index) {
+        return b.readFloatBE(index);
+    };
+    this.setFloat32 = function(index, value) {
+        return b.writeFloatBE(index, value);
+    };
+    this.getFloat64 = function(index) {
+        if (Number.isNaN(index)) {
+            throw new Error("NaN index");
+        }
+        return b.readDoubleBE(index);
+    };
+    this.setFloat64 = function(index, value) {
+        return b.writeDoubleBE(index, value);
+    };
+    this.slice = function(start, end) {
+        return new ViewFromBuffer(b.slice(start, end));
+    };
+    this.length = b.length;
+    this.byteLength = b.length;
+}
+
 module.exports = {
     getIndex: getIndex,
     getValue: function (A, B, s) {
@@ -21,7 +70,7 @@ module.exports = {
         return obj;
     },
     getDataView: function (obj) {
-        var i, view;
+        var view;
         if (obj.constructor === ArrayBuffer) {
             return new DataView(obj);
         } else if (obj.constructor === DataView) {
@@ -30,11 +79,15 @@ module.exports = {
             return new DataView(new ArrayBuffer(obj));
         } else if (obj.hasOwnProperty('buffer')) {
             return new DataView(obj.buffer);
-        } else if (typeof obj.readUInt8 === 'function') {
+        } else if (typeof obj.readUInt8 === 'function' && !obj.hasOwnProperty('getUint8')) {
+            /*
             view = new DataView(new ArrayBuffer(obj.length));
             for (i = 0; i < obj.length; i++) {
                 view.setUint8(i, obj.readUInt8(i));
             }
+            return view;
+            */
+            view = new ViewFromBuffer(obj);
             return view;
         } else {
             throw new Error("Invalid input parameter");
