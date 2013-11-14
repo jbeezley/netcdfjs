@@ -209,11 +209,11 @@ dP(NcFile, 'read', { value: function (buffer, done) {
         }
         function flatten(A) {
             var i, j, k;
+            var B, vvvv;
             if (A.length === 0) {
                 return new type.typedArray(0);
             }
             var irec = 0, x = zeros(n);
-            var B, vvvv;
             function inc() {
                 var i;
                 x[n-1] = x[n-1] + 1;
@@ -232,10 +232,14 @@ dP(NcFile, 'read', { value: function (buffer, done) {
             B = new type.typedArray( nvrec * A[0].size );
             k = 0;
             for (i = 0; i < A.length; i++) {
-                for (j = 0; j < A[0].size; j++) {
-                    vvvv = A[irec].get.apply(A[irec], x);
-                    B.set(k++, A[irec].get.apply(A[irec], x));
-                    inc();
+                if (x.length) {
+                    for (j = 0; j < A[0].size; j++) {
+                        vvvv = A[irec].get.apply(A[irec], x);
+                        B.set(k++, A[irec].get.apply(A[irec], x));
+                        inc();
+                    }
+                } else {
+                    B.set(k++, A[irec].get(0));
                 }
             }
             return B;
