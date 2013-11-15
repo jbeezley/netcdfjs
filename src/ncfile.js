@@ -1,10 +1,12 @@
-/*jshint forin: false */
+/*jshint forin: false, loopfunc: true */
 'use strict';
 
 var common = require('./common'), types = require('./types'),
     Variable = require('./variable'), Dimension = require('./dimension'),
-    Attribute = require('./attribute'), NDArray = require('ndarray');
+    Attribute = require('./attribute'), NDArray = require('ndarray'),
+    ReadFile = require('./readFile.js');
 var dP = common.dP;
+
 
 function NcFile() {
     var dims = [], vars = [];
@@ -135,34 +137,32 @@ dP(NcFile, 'fromObject', { value: function (obj) {
     }
     return f;
 }});
-dP(NcFile, 'read', { value: function (buffer, done) {
+
+function readHeader(hview, nc) {
+
+    var index = 0;
+    var nbr = types.int32, str = types.string;
+    var magic, offsetType;
+    var numrecs;
+    var marker;
+    var n, i, j, name, size, dims = [], attrs, v, recsize = 0;
+    var dimids, dnames, type, offset, offsets = {}, vsize = {};
+
     function err(msg) {
         throw new Error(msg);
     }
-    var view;
-    var index = 0;
-    var f;
-    var str = types.string, nbr = types.int32;
-     
-    var magic;
-    var offsetType;
-    var numrecs, recsize = 0;
-    var marker;
-    var name, size, type;
-    var n, i, dims = [], dimids, dnames, j, attrs, v, offset, offsets = {};
-    
     function skip() {
         index += (4 - (index % 4)) % 4;
     }
     function read(type, len) {
-        var v = type.read(index, view, len);
+        var v = type.read(index, hview, len);
         if (len === undefined) { len = 1; }
         index += len * type.typeSize;
         skip();
         return v;
     }
     function readA(type) {
-        var v = type.readArray(index, view);
+        var v = type.readArray(index, hview);
         index += nbr.typeSize + v.length * type.typeSize;
         skip();
         return v;
@@ -178,7 +178,7 @@ dP(NcFile, 'read', { value: function (buffer, done) {
         else { err("Invalid type id: " + ts); }
     }
     function readAtts() {
-        var n, i, atts = [], type, val, name;
+        var n, i, atts = [], type, val, name, marker;
         marker = read(nbr);
         if (marker === 0) {
             if (read(nbr) !== 0) {
@@ -197,210 +197,175 @@ dP(NcFile, 'read', { value: function (buffer, done) {
         }
         return atts;
     }
-    function makeRead(v, offset) {
-        var i, shp = v.shape, ul = v.unlimited ? 1 : 0;
-        var type = types[v.type];
-        var nda = [], buffer = [], nBuffer;
-        var nvrec, b, n = shp.length - ul;
-        function zeros(n) {
-            var i, a = [];
-            for (i = 0; i < n; i++) { a.push(0); }
-            return a;
-        }
-        function flatten(A) {
-            var i, j, k;
-            var B, vvvv;
-            if (A.length === 0) {
-                return new type.typedArray(0);
-            }
-            var irec = 0, x = zeros(n);
-            function inc() {
-                var i;
-                x[n-1] = x[n-1] + 1;
-                for (i = n-1; i >= 1; i--) {
-                    if (x[i] === A[0].shape[i]) {
-                        x[i] = 0;
-                        x[i-1] = x[i-1] + 1;
-                    }
-                }
-                if (x[0] === A[0].shape[0]) {
-                    irec++;
-                    x = zeros(n);
-                }
-            }
+    
+    magic = read(str, 4);
 
-            B = new type.typedArray( nvrec * A[0].size );
-            k = 0;
-            for (i = 0; i < A.length; i++) {
-                if (x.length) {
-                    for (j = 0; j < A[0].size; j++) {
-                        vvvv = A[irec].get.apply(A[irec], x);
-                        B.set(k++, A[irec].get.apply(A[irec], x));
-                        inc();
-                    }
-                } else {
-                    B.set(k++, A[irec].get(0));
-                }
-            }
-            return B;
-            
+    if (magic.slice(0,3) !== 'CDF') {
+        err('Invalid magic');
+    }
+    if (magic[3] === '\x01') {
+        offsetType = nbr;
+    } else if (magic[3] === '\x02') {
+        offsetType = types.int64;
+    } else {
+        err('Invalid version byte');
+    }
+    numrecs = read(nbr);
+    if (numrecs < 0) {
+        err('Invalid record size');
+    }
+    nc.setNumRecs(numrecs);
+    marker = read(nbr);
+    if (marker === 0) {
+        if (read(nbr) !== 0) {
+            err('Expected 0 after ABSENT dimension marker');
         }
+    } else if (marker === 10) {
+        n = read(nbr);
+        for (i = 0; i < n; i++) {
+            name = readA(str);
+            size = read(nbr);
+            dims.push(name);
+            nc.createDimension(name, size);
+        }
+    } else {
+        err('Expected a dimension array');
+    }
 
-        if (ul) {
-            nvrec = numrecs;
-            shp = shp.slice(1);
-        } else {
-            nvrec = 1;
-        }
-        
-        nBuffer = shp.reduce(function (a,b) { return a*b; }, 1);
-        for (i = 0; i < nvrec; i++) {
-            b = type.wrapView(view, offset + i*recsize, nBuffer * type.typeSize);
-            buffer.push(b);
-            if (shp.length) {
-                nda.push(new NDArray(b, shp));
-            } else {
-                nda.push(new NDArray(b, [1]));
-            }
-        }
-
-        function readVar(start, count) {
-            var B, C, i, m = n, lo, hi, srec, crec;
-            if (start === undefined) {
-                start = [];
-                start.length = n + ul;
-            }
-            if (count === undefined) {
-                count = [];
-                count.length = n + ul;
-            }
-            if ( start.length !== n + ul|| count.length !== n + ul) {
-                throw new Error("Invalid start/count argument length");
-            }
-            if (ul) {
-                srec = start[0];
-                crec = count[0];
-                start = start.slice(1);
-                count = count.slice(1);
-            } else {
-                srec = 0;
-                crec = 1;
-            }
-            hi = [];
-            lo = [];
-            B = [];
-            if (srec === undefined) { srec = 0; }
-            if (crec === undefined) { crec = nvrec; }
-            if (srec < 0 ||
-                crec < 0 ||
-                srec + crec > nvrec) {
-                throw new Error("Invalid start/count for record dimension");
-            }
-            for (i = 0; i < m; i++) {
-                if (start[i] === undefined) {
-                    start[i] = 0;
-                }
-                if (count[i] === undefined) {
-                    count[i] = shp[i] - start[i];
-                }
-                lo.push(start[i]);
-                hi.push(start[i] + count[i]);
-                if (lo[i] < 0 || hi[i] < lo || hi[i] > shp[i]) {
-                    throw new Error("Invalid start/count values");
-                }
-            }
-            for (i = 0; i < crec; i++) {
-                C = nda[i+srec].lo.apply(nda[i+srec], lo);
-                B.push(C.hi.apply(C, hi));
-            }
-            return flatten(B);
-        }
-        return readVar;
+    attrs = readAtts(nc);
+    for (i = 0; i < attrs.length; i++) {
+        nc.createAttribute(attrs[i].name, attrs[i].type.toString()).set(attrs[i].val);
     }
     
-    try {
-        f = new NcFile();
-        view = common.getDataView(buffer);
-        magic = read(str, 4);
-    
-        if (magic.slice(0,3) !== 'CDF') {
-            err('Invalid magic');
+    marker = read(nbr);
+    if (marker === 0) {
+        if (read(nbr) !== 0) {
+            err('Expected 0 after ABSENT variable marker');
         }
-        if (magic[3] === '\x01') {
-            offsetType = nbr;
-        } else if (magic[3] === '\x02') {
-            offsetType = types.int64;
-        } else {
-            err('Invalid version byte');
-        }
-        numrecs = read(nbr);
-        if (numrecs < 0) {
-            err('Invalid record size');
-        }
-        f.setNumRecs(numrecs);
-        marker = read(nbr);
-        if (marker === 0) {
-            if (read(nbr) !== 0) {
-                err('Expected 0 after ABSENT dimension marker');
+    } else if (marker === 11) {
+        n = read(nbr);
+        for (i = 0; i < n; i++) {
+            name = readA(str);
+            dimids = readA(nbr);
+            dnames = [];
+            for (j = 0; j < dimids.length; j++) {
+                dnames.push(dims[dimids[j]]);
             }
-        } else if (marker === 10) {
-            n = read(nbr);
-            for (i = 0; i < n; i++) {
-                name = readA(str);
-                size = read(nbr);
-                dims.push(name);
-                f.createDimension(name, size);
+            attrs = readAtts(nc);
+            type = readType();
+            size = read(nbr);
+            vsize[name] = size;
+            offset = read(offsetType);
+            offsets[name] = offset;
+            v = nc.createVariable(name, type.toString(), dnames);
+            if (v.unlimited) { recsize += size; }
+            for (j = 0; j < attrs.length; j++) {
+                v.createAttribute(attrs[j].name, attrs[j].type.toString()).set(attrs[j].val);
             }
-        } else {
-            err('Expected a dimension array');
         }
-
-        attrs = readAtts(f);
-        for (i = 0; i < attrs.length; i++) {
-            f.createAttribute(attrs[i].name, attrs[i].type.toString()).set(attrs[i].val);
-        }
-        
-        marker = read(nbr);
-        if (marker === 0) {
-            if (read(nbr) !== 0) {
-                err('Expected 0 after ABSENT variable marker');
-            }
-        } else if (marker === 11) {
-            n = read(nbr);
-            for (i = 0; i < n; i++) {
-                name = readA(str);
-                dimids = readA(nbr);
-                dnames = [];
-                for (j = 0; j < dimids.length; j++) {
-                    dnames.push(dims[dimids[j]]);
-                }
-                attrs = readAtts(f);
-                type = readType();
-                size = read(nbr);
-                offset = read(offsetType);
-                offsets[name] = offset;
-                v = f.createVariable(name, type.toString(), dnames);
-                if (v.unlimited) { recsize += size; }
-                for (j = 0; j < attrs.length; j++) {
-                    v.createAttribute(attrs[j].name, attrs[j].type.toString()).set(attrs[j].val);
-                }
-                //dP(v, 'read', { value: makeRead(v, offset) });
-            }
-            for (i in f.variables) {
-                offset = offsets[i];
-                v = f.variables[i];
-                dP(v, 'read', { value: makeRead(v, offset) });
-            }
-        } else {
-            err('Expected variable array');
-        }
-
-    } catch(e) {
-        done(e.msg || e.toString());
-        return;
     }
-    done(f);
     
+    return { offsets: offsets, recsize: recsize, vsize: vsize, nrecs: numrecs };
+}
+
+function makeRead(ncfile, v, offset, vsize, recsize, nrecs) {
+    var ul = v.unlimited;
+    var recs = [];
+    var shp;
+
+    function readRec(irec, callBack) {
+        if (recs[irec] === undefined) {
+            ncfile.getView(offset + irec * recsize, offset + irec * recsize + vsize, function (view) {
+                recs[irec] = new NDArray(view, shp);
+                callBack(irec);
+            });
+        } else {
+            callBack(irec);
+        }
+    }
+
+    function read(readCallBack, start, count) {
+        var srec, erec, s = [], e = [], i, recDone = [];
+        if (start === undefined) { start = []; }
+        if (count === undefined) { count = []; }
+        if (!ul) {
+            for (i = 0; i < shp.length; i++) {
+                if (start[i] === undefined) { s[i] = 0; }
+                else { s[i] = start[i]; }
+                if (count[i] === undefined) { e[i] = shp[i] - s[i]; }
+                else { e[i] = s[i] + count[i]; }
+            }
+            srec = 0;
+            erec = 1;
+        } else {
+            if (start[0] === undefined) { srec = 0; }
+            else { srec = start[0]; }
+            if (count[0] === undefined) { erec = nrecs - srec; }
+            else { erec = srec + count[0]; }
+            for (i = 0; i < shp.length; i++) {
+                if (start[i+1] === undefined) { s[i] = 0; }
+                else { s[i] = start[i+1]; }
+                if (count[i+1] === undefined) { e[i] = shp[i] - s[i]; }
+                else { e[i] = s[i] + count[i+1]; }
+            }
+        }
+        if (srec < 0 || erec <= srec || erec > nrecs) {
+            readCallBack(new Error("Invalid start/count record dimension"));
+            return;
+        }
+        for (i = 0; i < shp.length; i++) {
+            if (s[i] < 0 || e[i] <= s[i] || e[i] > shp[i]) {
+                readCallBack(new Error("Invalid start/count dimension: " + i));
+                return;
+            }
+        }
+
+        for (i = srec; i < erec; i++) {
+            readRec(i, function (iarg) {
+                var j, A = [];
+                recDone[iarg] = true;
+                for (j = srec; j < erec; j++) {
+                    if (!recDone[j]) { return; } // possible race condition
+                }
+                for (j = srec; j < erec; j++) {
+                    A.push(recs[j].lo(s).hi(e));
+                }
+                readCallBack(common.flatten(A, types[v.type]));
+            });
+        }
+    }
+    dP(v, 'read', { value: read });
+
+    if (!ul) {
+        nrecs = 1;
+        shp = v.shape.slice();
+    } else {
+        shp = v.shape.slice(1);
+    }
+
+}
+
+function defineReadMethods(ncfile, nc, readObj) {
+    var varName, v;
+    var offset, recsize, vsize, nrecs;
+    
+    recsize = readObj.recsize;
+    nrecs = readObj.nrecs;
+    for (varName in nc.variables) {
+        offset = readObj.offsets[varName];
+        vsize = readObj.vsize[varName];
+        v = nc.variables[varName];
+        makeRead(ncfile, v, offset, vsize, recsize, nrecs);
+    }
+}
+
+dP(NcFile, 'read', { value: function (file, done) {
+    var ncfile = new ReadFile(file);
+    var nc = new NcFile();
+    ncfile.getView(0, 1024*128, function (hview) {
+        defineReadMethods(ncfile, nc, readHeader(hview, nc));
+        done(nc);
+    });
 }});
 
 module.exports = NcFile;

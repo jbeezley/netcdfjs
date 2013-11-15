@@ -1,6 +1,7 @@
 /*jshint forin: false */
 
 'use strict';
+
 function getIndex(A, s) {
     var i;
     for (i = 0; i < A.length; i++) {
@@ -80,18 +81,30 @@ module.exports = {
         } else if (obj.hasOwnProperty('buffer')) {
             return new DataView(obj.buffer);
         } else if (typeof obj.readUInt8 === 'function' && !obj.hasOwnProperty('getUint8')) {
-            /*
-            view = new DataView(new ArrayBuffer(obj.length));
-            for (i = 0; i < obj.length; i++) {
-                view.setUint8(i, obj.readUInt8(i));
-            }
-            return view;
-            */
             view = new ViewFromBuffer(obj);
             return view;
         } else {
             throw new Error("Invalid input parameter");
         }
     },
-    dP: Object.defineProperty
+    dP: Object.defineProperty,
+    flatten: function (A, type) {
+        var i, buf, n, j, k;
+        if (A.length === 0) {
+            return [];
+        } else if (A.length === 1) {
+            return A[0].data;
+        } else {
+            n = A[0].size;
+            buf = new type.typedArray(n * A.length);
+            for (i = 0; i < A.length; i++) {
+                k = 0;
+                for (j = 0; j < n; j++) {
+                    //console.log(i + " " + j + " " + type.read(j * type.typeSize, A[i].data));
+                    buf.set(j + i*n, type.read(j * type.typeSize, A[i].data));
+                }
+            }
+            return buf;
+        }
+    }
 };
