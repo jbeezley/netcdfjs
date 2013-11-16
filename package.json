@@ -5,8 +5,8 @@
     "keywords": ["netcdf", "binary", "data", "file", "read", "write"],
     "homepage": "https://github.com/jbeezley/netcdfjs",
     "author": "Jonathan Beezley <jon.beezley@gmail.com>",
-    "files": [ "src/attribute.js", "src/dimension.js", "src/types.js", "src/ncfile.js", "src/readFile.js", "src/variable.js", "src/common.js" ],
-    "main": "src/ncfile.js",
+    "files": [ "src/netcdf3.js", "src/attribute.js", "src/dimension.js", "src/types.js", "src/ncfile.js", "src/readFile.js", "src/variable.js", "src/common.js" ],
+    "main": "src/netcdf3.js",
     "scripts": {
         "test": "make test"
     },

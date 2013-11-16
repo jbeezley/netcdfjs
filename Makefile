@@ -1,7 +1,7 @@
 
 browser: test
 	@ln -sf readFileBrowser.js src/readFile.js
-	browserify src/ncfile.js -o netcdf3.js
+	browserify src/netcdf3.js -o netcdf3.js -s netcdf3
 
 test:
 	@ln -sf readFileNode.js src/readFile.js

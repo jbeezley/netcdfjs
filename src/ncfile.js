@@ -361,9 +361,13 @@ function defineReadMethods(ncfile, nc, readObj) {
 
 dP(NcFile, 'read', { value: function (file, done) {
     var ncfile = new ReadFile(file);
-    var nc = new NcFile();
     ncfile.getView(0, 1024*128, function (hview) {
-        defineReadMethods(ncfile, nc, readHeader(hview, nc));
+        var nc = new NcFile();
+        try {
+            defineReadMethods(ncfile, nc, readHeader(hview, nc));
+        } catch(err) {
+            nc = err;
+        }
         done(nc);
     });
 }});
