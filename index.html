@@ -9,32 +9,49 @@
 </head>
 
 <body>
-
-    <input data-bind="event: { change: loadVariables }" type="file" id="netcdfFile"/>
-    <select data-bind="options: variables, value: selectedVar"></select>
+    <tr>
+        <td><input data-bind="event: { change: loadVariables }" type="file" id="netcdfFile"/></td>
+        <td><select data-bind="options: variables, value: selectedVar"></select></td>
+        <td><button data-bind="click: showVariable, enable: ncFile()">Display</button></td>
+    </tr>
+    <div data-bind="text: variableData"></div>
     <script>
         var NcFile = window.netcdf3.NcFile;
         var variables = ko.observableArray([]);
 
         var viewModel = {
+            ncFile: ko.observable(''),
             variables: variables,
             selectedVar: ko.observable(''),
-            loadVariables: function () {
-                var file = $('input#netcdfFile')[0].files[0];
-                if (file === undefined) { return; }
-                NcFile.read(file, function (nc) {
-                    var i;
-                    
-                    if (nc.constructor !== NcFile) {
-                        alert("Could not open file: " + file.name);
-                    }
-                    variables.removeAll();
-                    for (i in nc.variables) {
-                        variables.push(i);
-                    }
-                });
-            }
+            variableData: ko.observable('')
         };
+        viewModel.loadVariables = function () {
+            var file = $('input#netcdfFile')[0].files[0];
+            if (file === undefined) { return; }
+            NcFile.read(file, function (nc) {
+                var i;
+                viewModel.ncFile(nc); 
+                if (nc.constructor !== NcFile) {
+                    viewModel.ncFile('');
+                    alert("Could not open file: " + file.name);
+                }
+                variables.removeAll();
+                for (i in nc.variables) {
+                    variables.push(i);
+                }
+            });
+        };
+        viewModel.showVariable = function () {
+            var vName = this.selectedVar();
+            var v = this.ncFile().variables[vName];
+            v.read(function (d) {
+                if(typeof d === 'string') {
+                    viewModel.variableData(d);
+                } else {
+                    viewModel.variableData(v.toString());
+                }
+            });
+        }.bind(viewModel);
         ko.applyBindings(viewModel);
     </script>
 </body>

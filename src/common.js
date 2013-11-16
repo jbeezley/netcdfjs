@@ -97,13 +97,14 @@ module.exports = {
         }
         if (type.toString() === 'string') {
             buf = [];
-            buf.set = function (i, v) { buf[i] = v; };
+            //buf.set = function (i, v) { buf[i] = v; };
         } else {
             buf = new type.typedArray(n * A.length);
         }
         for (i = 0; i < A.length; i++) {
             for (j = 0; j < n; j++) {
-                buf.set(j + i*n, type.read(j * type.typeSize, A[i].data));
+                //buf.set(j + i*n, type.read(j * type.typeSize, A[i].data));
+                buf[j + i*n] = type.read(j * type.typeSize, A[i].data);
             }
         }
         if (type.toString() === 'string') {
