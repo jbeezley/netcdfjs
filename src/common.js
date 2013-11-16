@@ -89,22 +89,26 @@ module.exports = {
     },
     dP: Object.defineProperty,
     flatten: function (A, type) {
-        var i, buf, n, j, k;
-        if (A.length === 0) {
-            return [];
-        } else if (A.length === 1) {
-            return A[0].data;
-        } else {
+        var i, buf, n, j;
+        if (A.length !== 0) {
             n = A[0].size;
-            buf = new type.typedArray(n * A.length);
-            for (i = 0; i < A.length; i++) {
-                k = 0;
-                for (j = 0; j < n; j++) {
-                    //console.log(i + " " + j + " " + type.read(j * type.typeSize, A[i].data));
-                    buf.set(j + i*n, type.read(j * type.typeSize, A[i].data));
-                }
-            }
-            return buf;
+        } else {
+            n = 0;
         }
+        if (type.toString() === 'string') {
+            buf = [];
+            buf.set = function (i, v) { buf[i] = v; };
+        } else {
+            buf = new type.typedArray(n * A.length);
+        }
+        for (i = 0; i < A.length; i++) {
+            for (j = 0; j < n; j++) {
+                buf.set(j + i*n, type.read(j * type.typeSize, A[i].data));
+            }
+        }
+        if (type.toString() === 'string') {
+            buf = buf.join('');
+        }
+        return buf;
     }
 };
