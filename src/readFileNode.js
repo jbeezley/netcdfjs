@@ -1,6 +1,7 @@
 'use strict';
 
 var common = require('./common');
+
 var fs = false;
 if (typeof process !== undefined) {
     fs = require('fs');
@@ -8,7 +9,8 @@ if (typeof process !== undefined) {
 
 function ReadFile(obj) {
     var fname, fobj, isNode, fsize;
-    if (typeof obj === 'string') {
+    
+    if (fs && typeof obj === 'string') {
         isNode = true;
         fname = obj;
         fobj = fs.openSync(fname, 'r');

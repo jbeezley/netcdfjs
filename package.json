@@ -5,8 +5,8 @@
     "keywords": ["netcdf", "binary", "data", "file", "read", "write"],
     "homepage": "https://github.com/jbeezley/netcdfjs",
     "author": "Jonathan Beezley <jon.beezley@gmail.com>",
-    "files": [ "src/attribute.js", "src/ncDefs.js",  "src/netcdf3.js", "src/orderedMap.js", "src/types.js" ],
-    "main": "src/netcdf3.js",
+    "files": [ "src/attribute.js", "src/dimension.js", "src/types.js", "src/ncfile.js", "src/readFile.js", "src/variable.js", "src/common.js" ],
+    "main": "src/ncfile.js",
     "scripts": {
         "test": "make test"
     },
@@ -21,11 +21,14 @@
         "mocha": "*",
         "chai": "*",
         "jscoverage": "*",
-        "amdefine": "*"
+		"browserify": "*"
     },
     "licenses": [{
         "type": "MIT",
         "url": "https://raw.github.com/jbeezley/netcdfjs/master/LICENSE"
     }],
+	"browser": {
+			"./readFile.js": "./readFileBrowser.js"
+	},
     "bugs": "https://github.com/jbeezley/netcdfjs/issues"
 }
